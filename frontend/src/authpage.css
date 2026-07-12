@@ -1,0 +1,149 @@
+:root {
+  --bg: #e6ebf1;
+  --shadow-light: #ffffff;
+  --shadow-dark: #b8c1cf;
+  --text: #3a4657;
+  --accent: #6c5ce7;
+}
+
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.form-container {
+  width: min(420px, 100%);
+  padding: 2.5rem 2rem;
+  border-radius: 1.5rem;
+  background: var(--bg);
+  box-shadow:
+    9px 9px 18px var(--shadow-dark),
+    -9px -9px 18px var(--shadow-light);
+}
+
+.form-toggle {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: 1rem;
+  background: var(--bg);
+  box-shadow:
+    inset 4px 4px 8px var(--shadow-dark),
+    inset -4px -4px 8px var(--shadow-light);
+}
+
+.form-toggle button {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border: none;
+  border-radius: 0.85rem;
+  background: var(--bg);
+  color: var(--text);
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow:
+    5px 5px 10px var(--shadow-dark),
+    -5px -5px 10px var(--shadow-light);
+  transition: box-shadow 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+
+.form-toggle button:hover {
+  transform: translateY(-1px);
+}
+
+.form-toggle .active {
+  color: var(--accent);
+  box-shadow:
+    inset 4px 4px 8px var(--shadow-dark),
+    inset -4px -4px 8px var(--shadow-light);
+  transform: translateY(0);
+}
+
+.form,
+.form-container > h2 {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+h2 {
+  text-align: center;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 0.5rem;
+}
+
+input {
+  border: none;
+  outline: none;
+  padding: 0.95rem 1.1rem;
+  border-radius: 0.85rem;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.95rem;
+  box-shadow:
+    inset 5px 5px 10px var(--shadow-dark),
+    inset -5px -5px 10px var(--shadow-light);
+  transition: box-shadow 0.2s ease;
+}
+
+input::placeholder {
+  color: #8a95a5;
+}
+
+input:focus {
+  box-shadow:
+    inset 6px 6px 12px var(--shadow-dark),
+    inset -6px -6px 12px var(--shadow-light),
+    0 0 0 2px rgba(108, 92, 231, 0.25);
+}
+
+a {
+  align-self: flex-end;
+  color: var(--accent);
+  font-size: 0.85rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  border: none;
+  padding: 0.95rem 1rem;
+  border-radius: 0.85rem;
+  background: var(--bg);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow:
+    6px 6px 12px var(--shadow-dark),
+    -6px -6px 12px var(--shadow-light);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:active {
+  box-shadow:
+    inset 4px 4px 8px var(--shadow-dark),
+    inset -4px -4px 8px var(--shadow-light);
+  transform: translateY(0);
+}
+
+p {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text);
+  margin-top: 0.5rem;
+}
