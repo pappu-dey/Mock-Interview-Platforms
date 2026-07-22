@@ -1,0 +1,128 @@
+/* ─── Button.css ──────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 0.88rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border: 3px solid var(--ink, #0D0D0D);
+  transition:
+    background 0.15s ease,
+    transform  0.1s ease,
+    box-shadow 0.1s ease,
+    color      0.15s ease;
+  white-space: nowrap;
+  text-decoration: none;
+  line-height: 1;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── press effect ── */
+.btn:active:not(:disabled) {
+  transform: translate(4px, 4px);
+}
+
+/* ── disabled ── */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ─── Sizes ─────────────────────────────────────────────────────────────────── */
+.btn--sm  { padding: 0.5rem 1rem;    font-size: 0.75rem; }
+.btn--md  { padding: 0.85rem 1.4rem; font-size: 0.88rem; }
+.btn--lg  { padding: 1.1rem 2rem;    font-size: 1rem;    }
+.btn--full { width: 100%; }
+
+/* ─── Variants ──────────────────────────────────────────────────────────────── */
+
+/* Primary — pink with neo shadow */
+.btn--primary {
+  background: var(--pink, #FF3864);
+  color: var(--ink, #0D0D0D);
+  box-shadow: 6px 6px 0 var(--ink, #0D0D0D);
+}
+.btn--primary:hover:not(:disabled) {
+  background: var(--yellow, #FFD400);
+  transform: translate(-1px, -1px);
+  box-shadow: 8px 8px 0 var(--ink, #0D0D0D);
+}
+.btn--primary:active:not(:disabled) {
+  box-shadow: 2px 2px 0 var(--ink, #0D0D0D);
+}
+
+/* Secondary — transparent / outline */
+.btn--secondary {
+  background: transparent;
+  color: var(--ink, #0D0D0D);
+  box-shadow: 4px 4px 0 var(--ink, #0D0D0D);
+}
+.btn--secondary:hover:not(:disabled) {
+  background: var(--yellow, #FFD400);
+  transform: translate(-1px, -1px);
+  box-shadow: 6px 6px 0 var(--ink, #0D0D0D);
+}
+.btn--secondary:active:not(:disabled) {
+  box-shadow: 2px 2px 0 var(--ink, #0D0D0D);
+}
+
+/* Yellow accent */
+.btn--yellow {
+  background: var(--yellow, #FFD400);
+  color: var(--ink, #0D0D0D);
+  box-shadow: 6px 6px 0 var(--ink, #0D0D0D);
+}
+.btn--yellow:hover:not(:disabled) {
+  background: var(--pink, #FF3864);
+  transform: translate(-1px, -1px);
+  box-shadow: 8px 8px 0 var(--ink, #0D0D0D);
+}
+.btn--yellow:active:not(:disabled) {
+  box-shadow: 2px 2px 0 var(--ink, #0D0D0D);
+}
+
+/* Ghost — dark theme (used on dark backgrounds) */
+.btn--ghost {
+  background: transparent;
+  color: rgba(255,255,255,0.75);
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: none;
+}
+.btn--ghost:hover:not(:disabled) {
+  background: rgba(255,56,100,0.12);
+  border-color: var(--pink, #FF3864);
+  color: var(--pink, #FF3864);
+}
+
+/* Danger */
+.btn--danger {
+  background: #FF3864;
+  color: #fff;
+  border-color: #c0002c;
+  box-shadow: 4px 4px 0 #c0002c;
+}
+.btn--danger:hover:not(:disabled) {
+  background: #c0002c;
+  transform: translate(-1px, -1px);
+  box-shadow: 6px 6px 0 #c0002c;
+}
+
+/* ─── Loading spinner ────────────────────────────────────────────────────────── */
+.btn__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: btn-spin 0.7s linear infinite;
+}
+@keyframes btn-spin {
+  to { transform: rotate(360deg); }
+}
