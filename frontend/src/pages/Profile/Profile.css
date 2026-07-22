@@ -1,0 +1,375 @@
+/* ─── Profile.css ─────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+
+:root {
+  --bg:           #F4F1E8;
+  --ink:          #0D0D0D;
+  --yellow:       #FFD400;
+  --pink:         #FF3864;
+  --green:        #00C896;
+  --blue:         #4F8EF7;
+  --border:       3px solid var(--ink);
+  --shadow:       6px 6px 0 var(--ink);
+}
+
+/* ─── Page shell ─────────────────────────────────────────────────────────────── */
+.profile-page {
+  min-height: 100vh;
+  background: var(--bg);
+  background-image:
+    linear-gradient(var(--ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ink) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+  font-family: 'Space Mono', monospace;
+  color: var(--ink);
+  padding: 3rem 1rem 4rem;
+  animation: fadeIn 0.4s ease;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.profile-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+/* ─── Section Header helper ──────────────────────────────────────────────────── */
+.section-title {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(13,13,13,0.45);
+  margin-bottom: 1rem;
+}
+
+/* ─── Card shell ─────────────────────────────────────────────────────────────── */
+.profile-card {
+  background: var(--bg);
+  border: var(--border);
+  box-shadow: var(--shadow);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Hero / Identity Card ───────────────────────────────────────────────────── */
+.profile-hero {
+  padding: 2.5rem 2rem 2rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 1.75rem;
+  flex-wrap: wrap;
+}
+
+/* colour stripe at top */
+.profile-hero::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--pink) 0%, var(--yellow) 50%, var(--green) 100%);
+}
+
+/* Avatar circle */
+.profile-avatar {
+  flex-shrink: 0;
+  width: 88px;
+  height: 88px;
+  border: var(--border);
+  background: var(--yellow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--ink);
+  box-shadow: var(--shadow);
+  position: relative;
+}
+.profile-avatar__edit {
+  position: absolute;
+  bottom: -6px;
+  right: -6px;
+  width: 26px;
+  height: 26px;
+  background: var(--pink);
+  border: 2px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+.profile-avatar__edit:hover { background: var(--yellow); }
+
+/* Identity text */
+.profile-identity {
+  flex: 1;
+  min-width: 0;
+}
+.profile-name {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.9rem;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 0.4rem;
+  word-break: break-word;
+}
+.profile-email {
+  font-size: 0.8rem;
+  color: rgba(13,13,13,0.55);
+  margin-bottom: 0.75rem;
+}
+.profile-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.badge {
+  display: inline-block;
+  padding: 0.2rem 0.65rem;
+  border: 2px solid var(--ink);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.badge--role-student { background: var(--yellow); }
+.badge--role-company { background: #C8E6FF; }
+.badge--role-admin   { background: var(--pink); color: #fff; }
+.badge--joined       { background: rgba(0,200,150,0.15); color: #005A3C; }
+.badge--interviews   { background: rgba(79,142,247,0.15); color: #1a3a8a; }
+
+/* ─── Stats Row ──────────────────────────────────────────────────────────────── */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  border-top: 2px solid var(--ink);
+}
+.stat-item {
+  padding: 1.25rem 1.5rem;
+  border-right: 2px solid var(--ink);
+  text-align: center;
+  transition: background 0.15s ease;
+}
+.stat-item:last-child { border-right: none; }
+.stat-item:hover { background: var(--yellow); }
+.stat-value {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 2rem;
+  line-height: 1;
+  margin-bottom: 0.3rem;
+}
+.stat-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(13,13,13,0.5);
+}
+
+/* ─── Details / Info Card ────────────────────────────────────────────────────── */
+.profile-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+@media (max-width: 620px) {
+  .profile-info-grid { grid-template-columns: 1fr; }
+}
+.info-field {
+  padding: 1.1rem 1.5rem;
+  border-right: 2px solid var(--ink);
+  border-bottom: 2px solid var(--ink);
+}
+.info-field:nth-child(2n) { border-right: none; }
+.info-field:nth-last-child(-n+2) { border-bottom: none; }
+.info-field__label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(13,13,13,0.4);
+  margin-bottom: 0.4rem;
+}
+.info-field__value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+.info-field__value--muted {
+  color: rgba(13,13,13,0.35);
+  font-weight: 400;
+  font-style: italic;
+}
+
+/* ─── Edit Form ──────────────────────────────────────────────────────────────── */
+.profile-form {
+  padding: 1.75rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.profile-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 600px) {
+  .profile-form-row { grid-template-columns: 1fr; }
+}
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.form-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.form-input {
+  border: 3px solid var(--ink);
+  outline: none;
+  padding: 0.8rem 0.9rem;
+  background: #fff;
+  color: var(--ink);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.88rem;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  width: 100%;
+}
+.form-input::placeholder { color: rgba(13,13,13,0.35); }
+.form-input:focus {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+.form-input:disabled {
+  background: #e8e5dc;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.form-textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+.form-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+}
+
+/* ─── Activity / Recent Interviews ───────────────────────────────────────────── */
+.activity-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.9rem 1.5rem;
+  border-bottom: 2px solid var(--ink);
+  transition: background 0.12s ease;
+}
+.activity-item:last-child { border-bottom: none; }
+.activity-item:hover { background: rgba(255,212,0,0.1); }
+.activity-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+.activity-content { flex: 1; min-width: 0; }
+.activity-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+.activity-sub {
+  font-size: 0.68rem;
+  color: rgba(13,13,13,0.5);
+}
+.activity-score {
+  flex-shrink: 0;
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 1.1rem;
+}
+.activity-score--great { color: var(--green); }
+.activity-score--good  { color: var(--blue);  }
+.activity-score--ok    { color: var(--yellow); }
+
+/* ─── Card header row ────────────────────────────────────────────────────────── */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  border-bottom: 2px solid var(--ink);
+}
+.card-header h2 {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ─── Empty state ────────────────────────────────────────────────────────────── */
+.profile-empty {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: rgba(13,13,13,0.4);
+  font-size: 0.8rem;
+}
+.profile-empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+/* ─── Toast / success banner ─────────────────────────────────────────────────── */
+.profile-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--ink);
+  color: var(--yellow);
+  border: 2px solid var(--yellow);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  box-shadow: 4px 4px 0 var(--yellow);
+  animation: toastIn 0.25s ease, toastOut 0.3s ease 2.5s forwards;
+  z-index: 999;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes toastOut {
+  to   { opacity: 0; transform: translateY(14px); }
+}
+
+/* ─── Responsive tweaks ──────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .profile-hero  { flex-direction: column; gap: 1.25rem; }
+  .profile-name  { font-size: 1.4rem; }
+  .profile-stats { grid-template-columns: repeat(2, 1fr); }
+  .profile-stats .stat-item:nth-child(2n) { border-right: none; }
+  .profile-stats .stat-item:nth-child(1),
+  .profile-stats .stat-item:nth-child(2)  { border-bottom: 2px solid var(--ink); }
+}

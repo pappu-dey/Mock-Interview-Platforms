@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import './authpage.css'
+import authService from '../services/authService'
 
 const API_BASE = 'http://localhost:8080/api/auth'
 
@@ -11,9 +12,38 @@ function parseError(err, fallback) {
   return fallback
 }
 
+// ─── Password field with show/hide toggle ─────────────────────────────────────
+function PasswordField({ id, value, onChange, placeholder = '••••••••', autoComplete }) {
+  const [visible, setVisible] = useState(false)
+  return (
+    <div className="input-wrap">
+      <input
+        id={id}
+        type={visible ? 'text' : 'password'}
+        placeholder={placeholder}
+        required
+        value={value}
+        onChange={onChange}
+        autoComplete={autoComplete}
+      />
+      <button
+        type="button"
+        className="peek-btn"
+        onClick={() => setVisible((v) => !v)}
+        aria-label={visible ? 'Hide password' : 'Show password'}
+        aria-pressed={visible}
+        tabIndex={-1}
+      >
+        {visible ? 'Hide' : 'Show'}
+      </button>
+    </div>
+  )
+}
+
 // ─── Welcome Page ─────────────────────────────────────────────────────────────
 function WelcomePage({ email, role, token, onLogout }) {
   const [visible, setVisible] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     // tiny delay so the CSS transition fires after mount
@@ -21,31 +51,41 @@ function WelcomePage({ email, role, token, onLogout }) {
     return () => clearTimeout(t)
   }, [])
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(token || '')
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    } catch {
+      // clipboard API unavailable — fail quietly, token is still visible
+    }
+  }
+
   const roleEmoji = { student: '🎓', company: '🏢', admin: '🔑' }
   const quickLinks = role === 'company'
     ? [
-        { label: 'Post a Job', icon: '📋' },
-        { label: 'View Candidates', icon: '👥' },
-        { label: 'Schedule Interview', icon: '📅' },
-      ]
+      { label: 'Post a Job', icon: '📋' },
+      { label: 'View Candidates', icon: '👥' },
+      { label: 'Schedule Interview', icon: '📅' },
+    ]
     : [
-        { label: 'Browse Jobs', icon: '🔍' },
-        { label: 'Mock Interview', icon: '🎤' },
-        { label: 'My Progress', icon: '📊' },
-      ]
+      { label: 'Browse Jobs', icon: '🔍' },
+      { label: 'Mock Interview', icon: '🎤' },
+      { label: 'My Progress', icon: '📊' },
+    ]
 
   return (
     <div className={`container welcome-container ${visible ? 'welcome-visible' : ''}`}>
       {/* ── Floating particles bg ── */}
-      <span className="particle p1" />
-      <span className="particle p2" />
-      <span className="particle p3" />
+      <span className="particle p1" aria-hidden="true" />
+      <span className="particle p2" aria-hidden="true" />
+      <span className="particle p3" aria-hidden="true" />
 
       <div className="welcome-card">
         {/* Header strip */}
         <div className="welcome-header">
           <div className="corner-tag">AUTHENTICATED ✓</div>
-          <div className="welcome-avatar">{roleEmoji[role?.toLowerCase()] ?? '👤'}</div>
+          <div className="welcome-avatar" aria-hidden="true">{roleEmoji[role?.toLowerCase()] ?? '👤'}</div>
           <h1 className="welcome-title">Welcome back!</h1>
           <p className="welcome-email">{email}</p>
           <span className={`role-badge role-${role?.toLowerCase()}`}>{role}</span>
@@ -57,7 +97,7 @@ function WelcomePage({ email, role, token, onLogout }) {
           <div className="quick-grid">
             {quickLinks.map(({ label, icon }) => (
               <button key={label} className="quick-card" type="button">
-                <span className="quick-icon">{icon}</span>
+                <span className="quick-icon" aria-hidden="true">{icon}</span>
                 <span className="quick-label">{label}</span>
               </button>
             ))}
@@ -65,7 +105,16 @@ function WelcomePage({ email, role, token, onLogout }) {
 
           {/* Token preview */}
           <details className="token-block">
-            <summary>JWT Token</summary>
+            <summary>
+              JWT Token
+              <button
+                type="button"
+                className="copy-btn"
+                onClick={(e) => { e.preventDefault(); handleCopy() }}
+              >
+                {copied ? 'Copied ✓' : 'Copy'}
+              </button>
+            </summary>
             <code className="token-code">{token?.slice(0, 64)}…</code>
           </details>
 
@@ -79,7 +128,7 @@ function WelcomePage({ email, role, token, onLogout }) {
 }
 
 // ─── Auth Page (Login / Register) ─────────────────────────────────────────────
-export default function AuthPage() {
+export default function AuthPage({ onLoginSuccess = () => { } }) {
   const [isLogin, setIsLogin] = useState(true)
   const [role, setRole] = useState('student')
 
@@ -100,6 +149,13 @@ export default function AuthPage() {
   const [loggedInRole, setLoggedInRole] = useState('')
   const [loggedInToken, setLoggedInToken] = useState('')
 
+  const emailRef = useRef(null)
+
+  // Autofocus the email field whenever the form (re)appears
+  useEffect(() => {
+    if (!loggedIn) emailRef.current?.focus()
+  }, [isLogin, loggedIn])
+
   // ─── Switch tabs ──────────────────────────────────────────────────────────
   const switchTab = (toLogin) => {
     setIsLogin(toLogin)
@@ -109,6 +165,14 @@ export default function AuthPage() {
     setPassword('')
     setPassword2('')
   }
+
+  // Clear the error banner as soon as the person starts correcting their input
+  const withClearError = (setter) => (e) => {
+    if (error) setError('')
+    setter(e.target.value)
+  }
+
+  const passwordsMismatch = !isLogin && password2.length > 0 && password !== password2
 
   // ─── Register ─────────────────────────────────────────────────────────────
   const handleRegister = async (e) => {
@@ -173,6 +237,7 @@ export default function AuthPage() {
           setLoggedInRole(data.role)
           setLoggedInToken(data.token)
           setLoggedIn(true)
+          onLoginSuccess()   // notify App to re-sync auth state
         }, 400)
       }
     } catch (err) {
@@ -222,6 +287,7 @@ export default function AuthPage() {
             type="button"
             className={isLogin ? 'active' : ''}
             onClick={() => switchTab(true)}
+            aria-pressed={isLogin}
           >
             Login
           </button>
@@ -229,6 +295,7 @@ export default function AuthPage() {
             type="button"
             className={!isLogin ? 'active' : ''}
             onClick={() => switchTab(false)}
+            aria-pressed={!isLogin}
           >
             Sign up
           </button>
@@ -236,13 +303,15 @@ export default function AuthPage() {
 
         {/* ── Banners ── */}
         {error && (
-          <div className="alert alert-error" role="alert">
-            {error}
+          <div className="alert alert-error" role="alert" aria-live="assertive">
+            <span className="alert-icon" aria-hidden="true">⚠</span>
+            <span>{error}</span>
           </div>
         )}
         {successMsg && (
-          <div className="alert alert-success" role="status">
-            {successMsg}
+          <div className="alert alert-success" role="status" aria-live="polite">
+            <span className="alert-icon" aria-hidden="true">✓</span>
+            <span>{successMsg}</span>
           </div>
         )}
 
@@ -250,27 +319,28 @@ export default function AuthPage() {
           <form className="form" onSubmit={handleLogin}>
             <label className="field-label" htmlFor="login-email">Email</label>
             <input
+              ref={emailRef}
               id="login-email"
               type="email"
               placeholder="you@domain.com"
               required
+              autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={withClearError(setEmail)}
             />
 
             <label className="field-label" htmlFor="login-password">Password</label>
-            <input
+            <PasswordField
               id="login-password"
-              type="password"
-              placeholder="••••••••"
-              required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={withClearError(setPassword)}
+              autoComplete="current-password"
             />
 
             <a href="#" className="forgot">Forgot password?</a>
 
             <button type="submit" className="submit-btn" disabled={loading}>
+              {loading && <span className="spinner" aria-hidden="true" />}
               {loading ? 'Authenticating…' : 'Log In →'}
             </button>
 
@@ -283,32 +353,36 @@ export default function AuthPage() {
           <form className="form" onSubmit={handleRegister}>
             <label className="field-label" htmlFor="signup-email">Email</label>
             <input
+              ref={emailRef}
               id="signup-email"
               type="email"
               placeholder="you@domain.com"
               required
+              autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={withClearError(setEmail)}
             />
 
             <label className="field-label" htmlFor="signup-password">Password</label>
-            <input
+            <PasswordField
               id="signup-password"
-              type="password"
-              placeholder="••••••••"
-              required
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={withClearError(setPassword)}
+              autoComplete="new-password"
             />
 
-            <label className="field-label" htmlFor="signup-password2">Re-enter password</label>
-            <input
+            <label className="field-label" htmlFor="signup-password2">
+              Re-enter password
+              {passwordsMismatch && <span className="field-hint hint-bad">Doesn't match</span>}
+              {!isLogin && password2.length > 0 && !passwordsMismatch && (
+                <span className="field-hint hint-good">Matches ✓</span>
+              )}
+            </label>
+            <PasswordField
               id="signup-password2"
-              type="password"
-              placeholder="••••••••"
-              required
               value={password2}
-              onChange={(e) => setPassword2(e.target.value)}
+              onChange={withClearError(setPassword2)}
+              autoComplete="new-password"
             />
 
             <label className="field-label">I am a</label>
@@ -317,6 +391,7 @@ export default function AuthPage() {
                 type="button"
                 className={role === 'student' ? 'active' : ''}
                 onClick={() => setRole('student')}
+                aria-pressed={role === 'student'}
               >
                 Student
               </button>
@@ -324,12 +399,14 @@ export default function AuthPage() {
                 type="button"
                 className={role === 'company' ? 'active' : ''}
                 onClick={() => setRole('company')}
+                aria-pressed={role === 'company'}
               >
                 Company
               </button>
             </div>
 
-            <button type="submit" className="submit-btn" disabled={loading}>
+            <button type="submit" className="submit-btn" disabled={loading || passwordsMismatch}>
+              {loading && <span className="spinner" aria-hidden="true" />}
               {loading ? 'Creating account…' : 'Sign Up →'}
             </button>
 

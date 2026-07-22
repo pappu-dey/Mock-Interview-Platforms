@@ -1,0 +1,51 @@
+/*
+ * global.css — Single source of truth for all shared CSS design tokens.
+ *
+ * Imported ONCE in main.jsx so every component and page can rely on
+ * these variables being available, in the correct cascade order,
+ * regardless of which page or component loads first.
+ *
+ * DO NOT redefine :root variables in any component/page CSS file.
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+
+/* ─── Design Tokens ──────────────────────────────────────────────────────────── */
+:root {
+  /* Colours */
+  --bg:             #F4F1E8;
+  --ink:            #0D0D0D;
+  --yellow:         #FFD400;
+  --pink:           #FF3864;
+  --green:          #00C896;
+  --red:            #FF3864;
+  --blue:           #4F8EF7;
+
+  /* Borders & shadows */
+  --border:         3px;           /* used as: border: var(--border) solid var(--ink) */
+  --shadow-offset:  8px;
+
+  /* Layout */
+  --nav-height:     64px;
+}
+
+/* ─── Global Reset ───────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: 'Space Mono', monospace;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
