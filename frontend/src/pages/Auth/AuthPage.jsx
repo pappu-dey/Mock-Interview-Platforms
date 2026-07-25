@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import './authpage.css'
-import authService from '../services/authService'
+import './AuthPage.css'
+import authService from '../../services/authService'
 
 const API_BASE = 'http://localhost:8080/api/auth'
 
@@ -40,93 +40,6 @@ function PasswordField({ id, value, onChange, placeholder = '••••••�
   )
 }
 
-// ─── Welcome Page ─────────────────────────────────────────────────────────────
-function WelcomePage({ email, role, token, onLogout }) {
-  const [visible, setVisible] = useState(false)
-  const [copied, setCopied] = useState(false)
-
-  useEffect(() => {
-    // tiny delay so the CSS transition fires after mount
-    const t = setTimeout(() => setVisible(true), 30)
-    return () => clearTimeout(t)
-  }, [])
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(token || '')
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // clipboard API unavailable — fail quietly, token is still visible
-    }
-  }
-
-  const roleEmoji = { student: '🎓', company: '🏢', admin: '🔑' }
-  const quickLinks = role === 'company'
-    ? [
-      { label: 'Post a Job', icon: '📋' },
-      { label: 'View Candidates', icon: '👥' },
-      { label: 'Schedule Interview', icon: '📅' },
-    ]
-    : [
-      { label: 'Browse Jobs', icon: '🔍' },
-      { label: 'Mock Interview', icon: '🎤' },
-      { label: 'My Progress', icon: '📊' },
-    ]
-
-  return (
-    <div className={`container welcome-container ${visible ? 'welcome-visible' : ''}`}>
-      {/* ── Floating particles bg ── */}
-      <span className="particle p1" aria-hidden="true" />
-      <span className="particle p2" aria-hidden="true" />
-      <span className="particle p3" aria-hidden="true" />
-
-      <div className="welcome-card">
-        {/* Header strip */}
-        <div className="welcome-header">
-          <div className="corner-tag">AUTHENTICATED ✓</div>
-          <div className="welcome-avatar" aria-hidden="true">{roleEmoji[role?.toLowerCase()] ?? '👤'}</div>
-          <h1 className="welcome-title">Welcome back!</h1>
-          <p className="welcome-email">{email}</p>
-          <span className={`role-badge role-${role?.toLowerCase()}`}>{role}</span>
-        </div>
-
-        {/* Quick actions */}
-        <div className="welcome-body">
-          <p className="section-label">Quick Actions</p>
-          <div className="quick-grid">
-            {quickLinks.map(({ label, icon }) => (
-              <button key={label} className="quick-card" type="button">
-                <span className="quick-icon" aria-hidden="true">{icon}</span>
-                <span className="quick-label">{label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Token preview */}
-          <details className="token-block">
-            <summary>
-              JWT Token
-              <button
-                type="button"
-                className="copy-btn"
-                onClick={(e) => { e.preventDefault(); handleCopy() }}
-              >
-                {copied ? 'Copied ✓' : 'Copy'}
-              </button>
-            </summary>
-            <code className="token-code">{token?.slice(0, 64)}…</code>
-          </details>
-
-          <button className="submit-btn logout-btn" onClick={onLogout} type="button">
-            Log Out →
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
 // ─── Auth Page (Login / Register) ─────────────────────────────────────────────
 export default function AuthPage({ onLoginSuccess = () => { } }) {
   const [isLogin, setIsLogin] = useState(true)
@@ -143,18 +56,12 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
   // transition state
   const [exiting, setExiting] = useState(false)
 
-  // post-login state
-  const [loggedIn, setLoggedIn] = useState(false)
-  const [loggedInEmail, setLoggedInEmail] = useState('')
-  const [loggedInRole, setLoggedInRole] = useState('')
-  const [loggedInToken, setLoggedInToken] = useState('')
-
   const emailRef = useRef(null)
 
   // Autofocus the email field whenever the form (re)appears
   useEffect(() => {
-    if (!loggedIn) emailRef.current?.focus()
-  }, [isLogin, loggedIn])
+    emailRef.current?.focus()
+  }, [isLogin])
 
   // ─── Switch tabs ──────────────────────────────────────────────────────────
   const switchTab = (toLogin) => {
@@ -226,18 +133,15 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
       if (!res.ok) {
         setError(data.message || 'Invalid credentials.')
       } else {
+        // Persist session
         localStorage.setItem('jwt_token', data.token)
         localStorage.setItem('user_role', data.role)
         localStorage.setItem('user_email', email)
 
-        // Smooth exit animation, then show welcome page
+        // Smooth exit animation, then notify App to re-sync → App routes to Dashboard
         setExiting(true)
         setTimeout(() => {
-          setLoggedInEmail(email)
-          setLoggedInRole(data.role)
-          setLoggedInToken(data.token)
-          setLoggedIn(true)
-          onLoginSuccess()   // notify App to re-sync auth state
+          onLoginSuccess()
         }, 400)
       }
     } catch (err) {
@@ -245,33 +149,6 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
     } finally {
       setLoading(false)
     }
-  }
-
-  // ─── Logout ───────────────────────────────────────────────────────────────
-  const handleLogout = () => {
-    localStorage.removeItem('jwt_token')
-    localStorage.removeItem('user_role')
-    localStorage.removeItem('user_email')
-    setLoggedIn(false)
-    setExiting(false)
-    setLoggedInEmail('')
-    setLoggedInRole('')
-    setLoggedInToken('')
-    setEmail('')
-    setPassword('')
-    setError('')
-  }
-
-  // ─── Render welcome ───────────────────────────────────────────────────────
-  if (loggedIn) {
-    return (
-      <WelcomePage
-        email={loggedInEmail}
-        role={loggedInRole}
-        token={loggedInToken}
-        onLogout={handleLogout}
-      />
-    )
   }
 
   // ─── Render auth form ─────────────────────────────────────────────────────

@@ -12,7 +12,7 @@
  * needed yet — swap the save handler for an authFetch call when the backend is ready).
  */
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Button from '../../components/Button'
 import './Profile.css'
 
@@ -32,11 +32,36 @@ function formatDate(iso) {
   })
 }
 
+function readStoredProfile() {
+  try {
+    return JSON.parse(localStorage.getItem('profile_data') || '{}')
+  } catch {
+    return {}
+  }
+}
+
+const URL_RE = /^https?:\/\/[^\s]+\.[^\s]+$/i
+const PHONE_RE = /^[+()\d][\d\s()+-]{6,18}$/
+
+function validateField(field, value) {
+  if (!value) return ''
+  if (field === 'linkedin' || field === 'github' || field === 'website') {
+    return URL_RE.test(value) ? '' : 'Enter a full URL, starting with http:// or https://'
+  }
+  if (field === 'phone') {
+    return PHONE_RE.test(value) ? '' : 'Enter a valid phone number'
+  }
+  return ''
+}
+
+const KNOWN_ROLES = ['student', 'company', 'admin']
+
 // ── Sample activity data (replace with real API call) ─────────────────────────
 const SAMPLE_ACTIVITY = [
   {
     id: 1,
     icon: '🎤',
+    type: 'interview',
     title: 'Mock Interview — Data Structures',
     sub: '2 days ago  •  45 min',
     score: 87,
@@ -44,6 +69,7 @@ const SAMPLE_ACTIVITY = [
   {
     id: 2,
     icon: '🎤',
+    type: 'interview',
     title: 'Mock Interview — System Design',
     sub: '5 days ago  •  60 min',
     score: 74,
@@ -51,6 +77,7 @@ const SAMPLE_ACTIVITY = [
   {
     id: 3,
     icon: '📋',
+    type: 'application',
     title: 'Applied to Acme Corp — Frontend Engineer',
     sub: '1 week ago',
     score: null,
@@ -58,6 +85,7 @@ const SAMPLE_ACTIVITY = [
   {
     id: 4,
     icon: '🎤',
+    type: 'interview',
     title: 'Mock Interview — Behavioural Round',
     sub: '2 weeks ago  •  30 min',
     score: 91,
@@ -71,67 +99,176 @@ function scoreClass(s) {
   return 'activity-score--ok'
 }
 
+const EMPTY_FORM = {
+  displayName: '',
+  phone: '',
+  location: '',
+  bio: '',
+  linkedin: '',
+  github: '',
+  website: '',
+  avatarUrl: '',
+  joinedAt: '',
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Profile({ user = {}, onLogout = () => {} }) {
-  // ── Local profile data (persisted in localStorage) ──────────────────────────
-  const storedProfile = JSON.parse(
-    localStorage.getItem('profile_data') || '{}'
-  )
-
   const [editing, setEditing] = useState(false)
-  const [toast,   setToast]   = useState('')
-  const [saving,  setSaving]  = useState(false)
+  const [toast, setToast] = useState(null) // { message, tone }
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState({})
+  const fileInputRef = useRef(null)
+  const toastTimer = useRef(null)
+
+  // ── Local profile data (persisted in localStorage), read once on mount ──────
+  const [storedProfile, setStoredProfile] = useState(readStoredProfile)
 
   const [form, setForm] = useState({
-    displayName: storedProfile.displayName || '',
-    phone:       storedProfile.phone       || '',
-    location:    storedProfile.location    || '',
-    bio:         storedProfile.bio         || '',
-    linkedin:    storedProfile.linkedin    || '',
-    github:      storedProfile.github      || '',
-    website:     storedProfile.website     || '',
-    joinedAt:    storedProfile.joinedAt    || new Date().toISOString(),
+    ...EMPTY_FORM,
+    ...storedProfile,
+    joinedAt: storedProfile.joinedAt || new Date().toISOString(),
   })
 
-  // ── stats (mock — swap for API) ─────────────────────────────────────────────
+  const isDirty = useMemo(
+    () => JSON.stringify(form) !== JSON.stringify({ ...EMPTY_FORM, ...storedProfile, joinedAt: form.joinedAt }),
+    [form, storedProfile]
+  )
+
+  // ── warn on tab close if there are unsaved edits ────────────────────────────
+  useEffect(() => {
+    if (!editing || !isDirty) return
+    const handler = (e) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [editing, isDirty])
+
+  // ── derived, data-driven stats (fall back to saved overrides if present) ────
+  const derivedStats = useMemo(() => {
+    const interviewItems = SAMPLE_ACTIVITY.filter((a) => a.type === 'interview')
+    const avgScore = interviewItems.length
+      ? Math.round(interviewItems.reduce((sum, a) => sum + a.score, 0) / interviewItems.length)
+      : 0
+    return {
+      interviews: interviewItems.length,
+      score: avgScore,
+      applied: SAMPLE_ACTIVITY.filter((a) => a.type === 'application').length,
+      streak: 7, // TODO: derive from real activity timestamps once the API is wired up
+    }
+  }, [])
+
   const stats = {
-    interviews: storedProfile.interviews ?? 4,
-    score:      storedProfile.score      ?? 84,
-    applied:    storedProfile.applied    ?? 12,
-    streak:     storedProfile.streak     ?? 7,
+    interviews: storedProfile.interviews ?? derivedStats.interviews,
+    score: storedProfile.score ?? derivedStats.score,
+    applied: storedProfile.applied ?? derivedStats.applied,
+    streak: storedProfile.streak ?? derivedStats.streak,
   }
 
   // ── show toast helper ────────────────────────────────────────────────────────
-  const showToast = useCallback((msg) => {
-    setToast(msg)
-    setTimeout(() => setToast(''), 2800)
+  const showToast = useCallback((message, tone = 'success') => {
+    clearTimeout(toastTimer.current)
+    setToast({ message, tone })
+    toastTimer.current = setTimeout(() => setToast(null), 2800)
   }, [])
+
+  useEffect(() => () => clearTimeout(toastTimer.current), [])
+
+  // ── validation ────────────────────────────────────────────────────────────
+  const runValidation = (nextForm) => {
+    const nextErrors = {}
+    ;['phone', 'linkedin', 'github', 'website'].forEach((field) => {
+      const msg = validateField(field, nextForm[field])
+      if (msg) nextErrors[field] = msg
+    })
+    return nextErrors
+  }
+
+  const hasErrors = Object.keys(errors).length > 0
 
   // ── save handler ─────────────────────────────────────────────────────────────
   const handleSave = async (e) => {
     e.preventDefault()
+    const nextErrors = runValidation(form)
+    setErrors(nextErrors)
+    if (Object.keys(nextErrors).length > 0) {
+      showToast('Fix the highlighted fields before saving', 'error')
+      return
+    }
+
     setSaving(true)
-    // ── TODO: replace with: await authFetch('/api/profile', { method:'PUT', body: JSON.stringify(form) })
-    await new Promise((r) => setTimeout(r, 700)) // simulate network
-    localStorage.setItem('profile_data', JSON.stringify(form))
-    setSaving(false)
-    setEditing(false)
-    showToast('✓ Profile saved!')
+    try {
+      // ── TODO: replace with: await authFetch('/api/profile', { method:'PUT', body: JSON.stringify(form) })
+      await new Promise((resolve) => setTimeout(resolve, 700)) // simulate network
+      localStorage.setItem('profile_data', JSON.stringify(form))
+      setStoredProfile(form)
+      setEditing(false)
+      showToast('✓ Profile saved!')
+    } catch {
+      showToast('Could not save your profile — try again', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
   const handleCancel = () => {
-    // restore from storage
-    const saved = JSON.parse(localStorage.getItem('profile_data') || '{}')
-    setForm((prev) => ({ ...prev, ...saved }))
+    if (isDirty && !window.confirm('Discard your changes?')) return
+    setForm({ ...EMPTY_FORM, ...storedProfile, joinedAt: storedProfile.joinedAt || form.joinedAt })
+    setErrors({})
     setEditing(false)
   }
 
-  const handleChange = (field) => (e) =>
-    setForm((prev) => ({ ...prev, [field]: e.target.value }))
+  const handleChange = (field) => (e) => {
+    const { value } = e.target
+    setForm((prev) => ({ ...prev, [field]: value }))
+    if (errors[field]) {
+      setErrors((prev) => {
+        const msg = validateField(field, value)
+        const next = { ...prev }
+        if (msg) next[field] = msg
+        else delete next[field]
+        return next
+      })
+    }
+  }
+
+  const handleAvatarPick = () => fileInputRef.current?.click()
+
+  const handleAvatarFile = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file later
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      showToast('Please choose an image file', 'error')
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Image must be under 2MB', 'error')
+      return
+    }
+    const reader = new FileReader()
+    reader.onload = () => {
+      const avatarUrl = reader.result
+      setForm((prev) => ({ ...prev, avatarUrl }))
+      const updated = { ...storedProfile, avatarUrl }
+      localStorage.setItem('profile_data', JSON.stringify(updated))
+      setStoredProfile(updated)
+      showToast('✓ Avatar updated!')
+    }
+    reader.onerror = () => showToast('Could not read that image — try again', 'error')
+    reader.readAsDataURL(file)
+  }
+
+  const handleLogout = () => {
+    if (editing && isDirty && !window.confirm('You have unsaved changes. Log out anyway?')) return
+    onLogout()
+  }
 
   // ── Display name fallback ─────────────────────────────────────────────────────
   const displayName = form.displayName || user.email?.split('@')[0] || 'Anonymous'
-  const role        = user.role?.toLowerCase() ?? 'student'
+  const rawRole = user.role?.toLowerCase() ?? 'student'
+  const role = KNOWN_ROLES.includes(rawRole) ? rawRole : 'student'
 
   return (
     <div className="profile-page">
@@ -148,18 +285,29 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
 
             {/* Avatar */}
             <div className="profile-avatar" role="img" aria-label={`Avatar for ${displayName}`}>
-              {getInitials(user.email || displayName)}
-              <span
+              {form.avatarUrl ? (
+                <img className="profile-avatar__img" src={form.avatarUrl} alt="" />
+              ) : (
+                getInitials(user.email || displayName)
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="profile-avatar__input"
+                onChange={handleAvatarFile}
+                aria-hidden="true"
+                tabIndex={-1}
+              />
+              <button
+                type="button"
                 className="profile-avatar__edit"
-                role="button"
-                tabIndex={0}
                 title="Change avatar"
                 aria-label="Change avatar"
-                onClick={() => showToast('Avatar upload coming soon!')}
-                onKeyDown={(e) => e.key === 'Enter' && showToast('Avatar upload coming soon!')}
+                onClick={handleAvatarPick}
               >
                 ✏️
-              </span>
+              </button>
             </div>
 
             {/* Identity */}
@@ -218,15 +366,15 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
           <div className="card-header">
             <h2>Personal Details</h2>
             {editing && (
-              <span style={{ fontSize: '0.68rem', opacity: 0.5 }}>
-                EDITING MODE
+              <span className="editing-flag">
+                EDITING MODE{isDirty ? ' • UNSAVED' : ''}
               </span>
             )}
           </div>
 
           {editing ? (
             /* ── Edit Form ─────────────────────────────────────────────── */
-            <form className="profile-form" onSubmit={handleSave} id="profile-edit-form">
+            <form className="profile-form" onSubmit={handleSave} id="profile-edit-form" noValidate>
               <div className="profile-form-row">
                 <div className="form-field">
                   <label className="form-label" htmlFor="pf-displayName">Display Name</label>
@@ -237,6 +385,7 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                     placeholder="Your name"
                     value={form.displayName}
                     onChange={handleChange('displayName')}
+                    maxLength={60}
                   />
                 </div>
                 <div className="form-field">
@@ -257,12 +406,15 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                   <label className="form-label" htmlFor="pf-phone">Phone</label>
                   <input
                     id="pf-phone"
-                    className="form-input"
+                    className={`form-input ${errors.phone ? 'form-input--error' : ''}`}
                     type="tel"
                     placeholder="+91 98765 43210"
                     value={form.phone}
                     onChange={handleChange('phone')}
+                    aria-invalid={Boolean(errors.phone)}
+                    aria-describedby={errors.phone ? 'pf-phone-error' : undefined}
                   />
+                  {errors.phone && <p className="form-error" id="pf-phone-error">{errors.phone}</p>}
                 </div>
                 <div className="form-field">
                   <label className="form-label" htmlFor="pf-location">Location</label>
@@ -273,12 +425,16 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                     placeholder="City, Country"
                     value={form.location}
                     onChange={handleChange('location')}
+                    maxLength={80}
                   />
                 </div>
               </div>
 
               <div className="form-field">
-                <label className="form-label" htmlFor="pf-bio">Bio</label>
+                <div className="form-label-row">
+                  <label className="form-label" htmlFor="pf-bio">Bio</label>
+                  <span className="form-counter">{form.bio.length}/300</span>
+                </div>
                 <textarea
                   id="pf-bio"
                   className="form-input form-textarea"
@@ -294,23 +450,29 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                   <label className="form-label" htmlFor="pf-linkedin">LinkedIn URL</label>
                   <input
                     id="pf-linkedin"
-                    className="form-input"
+                    className={`form-input ${errors.linkedin ? 'form-input--error' : ''}`}
                     type="url"
                     placeholder="https://linkedin.com/in/…"
                     value={form.linkedin}
                     onChange={handleChange('linkedin')}
+                    aria-invalid={Boolean(errors.linkedin)}
+                    aria-describedby={errors.linkedin ? 'pf-linkedin-error' : undefined}
                   />
+                  {errors.linkedin && <p className="form-error" id="pf-linkedin-error">{errors.linkedin}</p>}
                 </div>
                 <div className="form-field">
                   <label className="form-label" htmlFor="pf-github">GitHub URL</label>
                   <input
                     id="pf-github"
-                    className="form-input"
+                    className={`form-input ${errors.github ? 'form-input--error' : ''}`}
                     type="url"
                     placeholder="https://github.com/…"
                     value={form.github}
                     onChange={handleChange('github')}
+                    aria-invalid={Boolean(errors.github)}
+                    aria-describedby={errors.github ? 'pf-github-error' : undefined}
                   />
+                  {errors.github && <p className="form-error" id="pf-github-error">{errors.github}</p>}
                 </div>
               </div>
 
@@ -318,12 +480,15 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                 <label className="form-label" htmlFor="pf-website">Personal Website</label>
                 <input
                   id="pf-website"
-                  className="form-input"
+                  className={`form-input ${errors.website ? 'form-input--error' : ''}`}
                   type="url"
                   placeholder="https://yoursite.com"
                   value={form.website}
                   onChange={handleChange('website')}
+                  aria-invalid={Boolean(errors.website)}
+                  aria-describedby={errors.website ? 'pf-website-error' : undefined}
                 />
+                {errors.website && <p className="form-error" id="pf-website-error">{errors.website}</p>}
               </div>
 
               <div className="form-actions">
@@ -341,6 +506,7 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                   size="sm"
                   type="submit"
                   loading={saving}
+                  disabled={hasErrors}
                   id="profile-save-btn"
                 >
                   Save Changes →
@@ -352,27 +518,31 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
             <div className="profile-info-grid">
               {[
                 { label: 'Display Name', value: form.displayName },
-                { label: 'Email',        value: user.email },
-                { label: 'Phone',        value: form.phone },
-                { label: 'Location',     value: form.location },
-                { label: 'LinkedIn',     value: form.linkedin },
-                { label: 'GitHub',       value: form.github },
-                { label: 'Website',      value: form.website },
-                { label: 'Role',         value: role },
-              ].map(({ label, value }) => (
+                { label: 'Email', value: user.email },
+                { label: 'Phone', value: form.phone },
+                { label: 'Location', value: form.location },
+                { label: 'LinkedIn', value: form.linkedin, href: form.linkedin },
+                { label: 'GitHub', value: form.github, href: form.github },
+                { label: 'Website', value: form.website, href: form.website },
+                { label: 'Role', value: role },
+              ].map(({ label, value, href }) => (
                 <div className="info-field" key={label}>
                   <div className="info-field__label">{label}</div>
                   <div className={`info-field__value ${!value ? 'info-field__value--muted' : ''}`}>
-                    {value || 'Not set'}
+                    {value && href ? (
+                      <a href={href} target="_blank" rel="noopener noreferrer">{value}</a>
+                    ) : (
+                      value || 'Not set'
+                    )}
                   </div>
                 </div>
               ))}
 
               {/* Bio spans full width if it has content */}
               {form.bio && (
-                <div className="info-field" style={{ gridColumn: '1 / -1' }}>
+                <div className="info-field info-field--wide">
                   <div className="info-field__label">Bio</div>
-                  <div className="info-field__value" style={{ fontWeight: 400, lineHeight: 1.6 }}>
+                  <div className="info-field__value info-field__value--bio">
                     {form.bio}
                   </div>
                 </div>
@@ -412,7 +582,10 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                     <div className="activity-sub">{item.sub}</div>
                   </div>
                   {item.score !== null && (
-                    <span className={`activity-score ${scoreClass(item.score)}`}>
+                    <span
+                      className={`activity-score ${scoreClass(item.score)}`}
+                      aria-label={`Score ${item.score} percent`}
+                    >
                       {item.score}%
                     </span>
                   )}
@@ -427,7 +600,7 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
           <div className="card-header">
             <h2>Account</h2>
           </div>
-          <div style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div className="account-actions">
             <Button
               variant="ghost"
               size="sm"
@@ -439,7 +612,7 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
             <Button
               variant="danger"
               size="sm"
-              onClick={onLogout}
+              onClick={handleLogout}
               id="profile-logout-btn"
             >
               🚪 Log Out
@@ -451,8 +624,8 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
 
       {/* ── Toast notification ── */}
       {toast && (
-        <div className="profile-toast" role="status" aria-live="polite">
-          {toast}
+        <div className={`profile-toast profile-toast--${toast.tone}`} role="status" aria-live="polite">
+          {toast.message}
         </div>
       )}
     </div>

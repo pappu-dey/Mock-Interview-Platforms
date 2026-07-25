@@ -1,8 +1,8 @@
 /**
- * api.js — Authenticated fetch helper
+ * api/api.js — Authenticated fetch helper
  *
  * Usage:
- *   import { authFetch } from './api'
+ *   import { authFetch } from '../api/api'
  *   const data = await authFetch('/api/interviews')
  *
  * Automatically attaches: Authorization: Bearer <JWT from localStorage>
@@ -34,32 +34,4 @@ export async function authFetch(path, options = {}) {
   }
 
   return res.json()
-}
-
-/**
- * Helper: is the user currently logged in?
- * (Token presence in localStorage — not cryptographically verified on client.)
- */
-export function isAuthenticated() {
-  return Boolean(localStorage.getItem('jwt_token'))
-}
-
-/**
- * Helper: get current user info from localStorage.
- */
-export function getCurrentUser() {
-  return {
-    email: localStorage.getItem('user_email'),
-    role: localStorage.getItem('user_role'),
-    token: localStorage.getItem('jwt_token'),
-  }
-}
-
-/**
- * Helper: clear session (logout).
- */
-export function clearSession() {
-  localStorage.removeItem('jwt_token')
-  localStorage.removeItem('user_role')
-  localStorage.removeItem('user_email')
 }
