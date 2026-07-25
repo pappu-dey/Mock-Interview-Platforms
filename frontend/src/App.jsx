@@ -1,9 +1,4 @@
 import React, { useState, useEffect } from 'react'
-import Navbar       from './components/Navbar'
-import AuthPage     from './pages/authpage.jsx'
-import Profile      from './pages/Profile/Profile'
-import LandingPage  from './pages/LandingPage/LandingPage'
-import authService  from './services/authService'
 import Navbar      from './components/Navbar'
 import AuthPage    from './pages/Auth/AuthPage'
 import Dashboard   from './pages/Dashboard/Dashboard'
@@ -37,9 +32,7 @@ export default function App() {
   const [user,     setUser]     = useState(() => authService.getCurrentUser())
 
   function syncAuth() {
-    setIsAuthed(authService.isAuthenticated())
-    setUser(authService.getCurrentUser())
-    const authed = authService.isAuthenticated()
+    const authed      = authService.isAuthenticated()
     const currentUser = authService.getCurrentUser()
     setIsAuthed(authed)
     setUser(currentUser)
@@ -69,8 +62,6 @@ export default function App() {
     if (route === '/profile') {
       page = <Profile user={user} onLogout={handleLogout} />
     } else {
-      // authenticated default → show auth welcome/dashboard
-      page = <AuthPage onLoginSuccess={syncAuth} />
       // authenticated default → Dashboard
       page = <Dashboard />
     }

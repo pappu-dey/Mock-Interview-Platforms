@@ -461,4 +461,3 @@
   .profile-stats .stat-item:nth-child(1),
   .profile-stats .stat-item:nth-child(2)  { border-bottom: 2px solid var(--ink); }
 }
-}
