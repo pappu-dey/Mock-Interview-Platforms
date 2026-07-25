@@ -42,6 +42,7 @@ public class SecurityConfig {
                 // Disable CSRF — we are stateless with JWT
                 .csrf(csrf -> csrf.disable())
 
+                // CORS is handled via @CrossOrigin on controllers
                 // Enable CORS using the corsConfigurationSource bean below
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
 

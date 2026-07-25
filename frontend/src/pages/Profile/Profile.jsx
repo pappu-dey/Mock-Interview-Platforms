@@ -12,6 +12,7 @@
  * needed yet — swap the save handler for an authFetch call when the backend is ready).
  */
 
+import React, { useState, useEffect, useCallback } from 'react'
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Button from '../../components/Button'
 import './Profile.css'
@@ -99,6 +100,67 @@ function scoreClass(s) {
   return 'activity-score--ok'
 }
 
+// ─── Component ────────────────────────────────────────────────────────────────
+export default function Profile({ user = {}, onLogout = () => {} }) {
+  // ── Local profile data (persisted in localStorage) ──────────────────────────
+  const storedProfile = JSON.parse(
+    localStorage.getItem('profile_data') || '{}'
+  )
+
+  const [editing, setEditing] = useState(false)
+  const [toast,   setToast]   = useState('')
+  const [saving,  setSaving]  = useState(false)
+
+  const [form, setForm] = useState({
+    displayName: storedProfile.displayName || '',
+    phone:       storedProfile.phone       || '',
+    location:    storedProfile.location    || '',
+    bio:         storedProfile.bio         || '',
+    linkedin:    storedProfile.linkedin    || '',
+    github:      storedProfile.github      || '',
+    website:     storedProfile.website     || '',
+    joinedAt:    storedProfile.joinedAt    || new Date().toISOString(),
+  })
+
+  // ── stats (mock — swap for API) ─────────────────────────────────────────────
+  const stats = {
+    interviews: storedProfile.interviews ?? 4,
+    score:      storedProfile.score      ?? 84,
+    applied:    storedProfile.applied    ?? 12,
+    streak:     storedProfile.streak     ?? 7,
+  }
+
+  // ── show toast helper ────────────────────────────────────────────────────────
+  const showToast = useCallback((msg) => {
+    setToast(msg)
+    setTimeout(() => setToast(''), 2800)
+  }, [])
+
+  // ── save handler ─────────────────────────────────────────────────────────────
+  const handleSave = async (e) => {
+    e.preventDefault()
+    setSaving(true)
+    // ── TODO: replace with: await authFetch('/api/profile', { method:'PUT', body: JSON.stringify(form) })
+    await new Promise((r) => setTimeout(r, 700)) // simulate network
+    localStorage.setItem('profile_data', JSON.stringify(form))
+    setSaving(false)
+    setEditing(false)
+    showToast('✓ Profile saved!')
+  }
+
+  const handleCancel = () => {
+    // restore from storage
+    const saved = JSON.parse(localStorage.getItem('profile_data') || '{}')
+    setForm((prev) => ({ ...prev, ...saved }))
+    setEditing(false)
+  }
+
+  const handleChange = (field) => (e) =>
+    setForm((prev) => ({ ...prev, [field]: e.target.value }))
+
+  // ── Display name fallback ─────────────────────────────────────────────────────
+  const displayName = form.displayName || user.email?.split('@')[0] || 'Anonymous'
+  const role        = user.role?.toLowerCase() ?? 'student'
 const EMPTY_FORM = {
   displayName: '',
   phone: '',
@@ -285,6 +347,18 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
 
             {/* Avatar */}
             <div className="profile-avatar" role="img" aria-label={`Avatar for ${displayName}`}>
+              {getInitials(user.email || displayName)}
+              <span
+                className="profile-avatar__edit"
+                role="button"
+                tabIndex={0}
+                title="Change avatar"
+                aria-label="Change avatar"
+                onClick={() => showToast('Avatar upload coming soon!')}
+                onKeyDown={(e) => e.key === 'Enter' && showToast('Avatar upload coming soon!')}
+              >
+                ✏️
+              </span>
               {form.avatarUrl ? (
                 <img className="profile-avatar__img" src={form.avatarUrl} alt="" />
               ) : (
@@ -366,6 +440,8 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
           <div className="card-header">
             <h2>Personal Details</h2>
             {editing && (
+              <span style={{ fontSize: '0.68rem', opacity: 0.5 }}>
+                EDITING MODE
               <span className="editing-flag">
                 EDITING MODE{isDirty ? ' • UNSAVED' : ''}
               </span>
@@ -374,6 +450,7 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
 
           {editing ? (
             /* ── Edit Form ─────────────────────────────────────────────── */
+            <form className="profile-form" onSubmit={handleSave} id="profile-edit-form">
             <form className="profile-form" onSubmit={handleSave} id="profile-edit-form" noValidate>
               <div className="profile-form-row">
                 <div className="form-field">
@@ -406,11 +483,13 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                   <label className="form-label" htmlFor="pf-phone">Phone</label>
                   <input
                     id="pf-phone"
+                    className="form-input"
                     className={`form-input ${errors.phone ? 'form-input--error' : ''}`}
                     type="tel"
                     placeholder="+91 98765 43210"
                     value={form.phone}
                     onChange={handleChange('phone')}
+                  />
                     aria-invalid={Boolean(errors.phone)}
                     aria-describedby={errors.phone ? 'pf-phone-error' : undefined}
                   />
@@ -431,6 +510,7 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
               </div>
 
               <div className="form-field">
+                <label className="form-label" htmlFor="pf-bio">Bio</label>
                 <div className="form-label-row">
                   <label className="form-label" htmlFor="pf-bio">Bio</label>
                   <span className="form-counter">{form.bio.length}/300</span>
@@ -450,11 +530,13 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                   <label className="form-label" htmlFor="pf-linkedin">LinkedIn URL</label>
                   <input
                     id="pf-linkedin"
+                    className="form-input"
                     className={`form-input ${errors.linkedin ? 'form-input--error' : ''}`}
                     type="url"
                     placeholder="https://linkedin.com/in/…"
                     value={form.linkedin}
                     onChange={handleChange('linkedin')}
+                  />
                     aria-invalid={Boolean(errors.linkedin)}
                     aria-describedby={errors.linkedin ? 'pf-linkedin-error' : undefined}
                   />
@@ -464,11 +546,13 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                   <label className="form-label" htmlFor="pf-github">GitHub URL</label>
                   <input
                     id="pf-github"
+                    className="form-input"
                     className={`form-input ${errors.github ? 'form-input--error' : ''}`}
                     type="url"
                     placeholder="https://github.com/…"
                     value={form.github}
                     onChange={handleChange('github')}
+                  />
                     aria-invalid={Boolean(errors.github)}
                     aria-describedby={errors.github ? 'pf-github-error' : undefined}
                   />
@@ -480,11 +564,13 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                 <label className="form-label" htmlFor="pf-website">Personal Website</label>
                 <input
                   id="pf-website"
+                  className="form-input"
                   className={`form-input ${errors.website ? 'form-input--error' : ''}`}
                   type="url"
                   placeholder="https://yoursite.com"
                   value={form.website}
                   onChange={handleChange('website')}
+                />
                   aria-invalid={Boolean(errors.website)}
                   aria-describedby={errors.website ? 'pf-website-error' : undefined}
                 />
@@ -518,6 +604,18 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
             <div className="profile-info-grid">
               {[
                 { label: 'Display Name', value: form.displayName },
+                { label: 'Email',        value: user.email },
+                { label: 'Phone',        value: form.phone },
+                { label: 'Location',     value: form.location },
+                { label: 'LinkedIn',     value: form.linkedin },
+                { label: 'GitHub',       value: form.github },
+                { label: 'Website',      value: form.website },
+                { label: 'Role',         value: role },
+              ].map(({ label, value }) => (
+                <div className="info-field" key={label}>
+                  <div className="info-field__label">{label}</div>
+                  <div className={`info-field__value ${!value ? 'info-field__value--muted' : ''}`}>
+                    {value || 'Not set'}
                 { label: 'Email', value: user.email },
                 { label: 'Phone', value: form.phone },
                 { label: 'Location', value: form.location },
@@ -540,6 +638,9 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
 
               {/* Bio spans full width if it has content */}
               {form.bio && (
+                <div className="info-field" style={{ gridColumn: '1 / -1' }}>
+                  <div className="info-field__label">Bio</div>
+                  <div className="info-field__value" style={{ fontWeight: 400, lineHeight: 1.6 }}>
                 <div className="info-field info-field--wide">
                   <div className="info-field__label">Bio</div>
                   <div className="info-field__value info-field__value--bio">
@@ -582,6 +683,7 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
                     <div className="activity-sub">{item.sub}</div>
                   </div>
                   {item.score !== null && (
+                    <span className={`activity-score ${scoreClass(item.score)}`}>
                     <span
                       className={`activity-score ${scoreClass(item.score)}`}
                       aria-label={`Score ${item.score} percent`}
@@ -600,6 +702,7 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
           <div className="card-header">
             <h2>Account</h2>
           </div>
+          <div style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <div className="account-actions">
             <Button
               variant="ghost"
@@ -612,6 +715,7 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
             <Button
               variant="danger"
               size="sm"
+              onClick={onLogout}
               onClick={handleLogout}
               id="profile-logout-btn"
             >
@@ -624,10 +728,13 @@ export default function Profile({ user = {}, onLogout = () => {} }) {
 
       {/* ── Toast notification ── */}
       {toast && (
+        <div className="profile-toast" role="status" aria-live="polite">
+          {toast}
         <div className={`profile-toast profile-toast--${toast.tone}`} role="status" aria-live="polite">
           {toast.message}
         </div>
       )}
     </div>
   )
+}
 }
