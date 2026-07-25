@@ -4,6 +4,12 @@ import AuthPage     from './pages/authpage.jsx'
 import Profile      from './pages/Profile/Profile'
 import LandingPage  from './pages/LandingPage/LandingPage'
 import authService  from './services/authService'
+import Navbar      from './components/Navbar'
+import AuthPage    from './pages/Auth/AuthPage'
+import Dashboard   from './pages/Dashboard/Dashboard'
+import Profile     from './pages/Profile/Profile'
+import LandingPage from './pages/LandingPage/LandingPage'
+import authService from './services/authService'
 
 // ─── Thin router helper ────────────────────────────────────────────────────────
 function useRoute() {
@@ -33,6 +39,14 @@ export default function App() {
   function syncAuth() {
     setIsAuthed(authService.isAuthenticated())
     setUser(authService.getCurrentUser())
+    const authed = authService.isAuthenticated()
+    const currentUser = authService.getCurrentUser()
+    setIsAuthed(authed)
+    setUser(currentUser)
+    // After login, navigate to the dashboard
+    if (authed) {
+      navigate('/dashboard')
+    }
   }
 
   function handleLogout() {
@@ -57,6 +71,8 @@ export default function App() {
     } else {
       // authenticated default → show auth welcome/dashboard
       page = <AuthPage onLoginSuccess={syncAuth} />
+      // authenticated default → Dashboard
+      page = <Dashboard />
     }
   } else {
     if (route === '/login' || route === '/register') {

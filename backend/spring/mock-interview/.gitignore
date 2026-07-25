@@ -4,6 +4,17 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Secrets & Private Config ###
+src/main/resources/application-local.properties
+src/main/resources/application-local.yml
+src/main/resources/application-secret.properties
+src/main/resources/application-secret.yml
+src/main/resources/application.properties
+!src/main/resources/application.properties.example
+.env
+.env.*
+!.env.example
+
 ### STS ###
 .apt_generated
 .classpath

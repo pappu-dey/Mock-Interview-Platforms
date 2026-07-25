@@ -1,0 +1,21 @@
+spring.application.name=mock-interview
+
+# ─── Database ────────────────────────────────────────────────
+# Copy this file to application-local.properties and fill in your real values
+spring.datasource.url=jdbc:mysql://<HOST>:<PORT>/<DB_NAME>?ssl-mode=REQUIRED
+spring.datasource.username=<YOUR_DB_USERNAME>
+spring.datasource.password=<YOUR_DB_PASSWORD>
+
+# ─── JPA / Hibernate ─────────────────────────────────────────
+spring.jpa.hibernate.ddl-auto=none
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+
+# ─── Server ──────────────────────────────────────────────────
+server.port=8080
+
+# ─── JWT ─────────────────────────────────────────────────────
+# Generate a strong 256-bit hex secret. Example: openssl rand -hex 32
+jwt.secret=<YOUR_JWT_SECRET_HEX>
+jwt.expiration=86400000

@@ -9,6 +9,7 @@
   --pink:         #FF3864;
   --green:        #00C896;
   --blue:         #4F8EF7;
+  --red:          #E0273B;
   --border:       3px solid var(--ink);
   --shadow:       6px 6px 0 var(--ink);
 }
@@ -93,6 +94,20 @@
   color: var(--ink);
   box-shadow: var(--shadow);
   position: relative;
+  overflow: hidden;
+}
+.profile-avatar__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.profile-avatar__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 .profile-avatar__edit {
   position: absolute;
@@ -106,6 +121,7 @@
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
+  padding: 0;
   cursor: pointer;
   transition: background 0.12s ease;
 }
@@ -195,6 +211,10 @@
 }
 .info-field:nth-child(2n) { border-right: none; }
 .info-field:nth-last-child(-n+2) { border-bottom: none; }
+.info-field--wide {
+  grid-column: 1 / -1;
+  border-right: none;
+}
 .info-field__label {
   font-size: 0.6rem;
   font-weight: 700;
@@ -208,6 +228,11 @@
   font-weight: 700;
   word-break: break-word;
 }
+.info-field__value a {
+  color: var(--ink);
+  text-decoration-color: var(--pink);
+  text-decoration-thickness: 2px;
+}
 .info-field__value--muted {
   color: rgba(13,13,13,0.35);
   font-weight: 400;
@@ -215,6 +240,18 @@
 }
 
 /* ─── Edit Form ──────────────────────────────────────────────────────────────── */
+.info-field__value--bio {
+  font-weight: 400;
+  line-height: 1.6;
+}
+
+/* ─── Edit Form ──────────────────────────────────────────────────────────────── */
+.editing-flag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  opacity: 0.55;
+}
 .profile-form {
   padding: 1.75rem 2rem;
   display: flex;
@@ -234,11 +271,20 @@
   flex-direction: column;
   gap: 0.35rem;
 }
+.form-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
 .form-label {
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
+}
+.form-counter {
+  font-size: 0.62rem;
+  color: rgba(13,13,13,0.4);
 }
 .form-input {
   border: 3px solid var(--ink);
@@ -261,6 +307,15 @@
   background: #e8e5dc;
   cursor: not-allowed;
   opacity: 0.7;
+}
+.form-input--error {
+  border-color: var(--red);
+  box-shadow: 4px 4px 0 var(--red);
+}
+.form-error {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--red);
 }
 .form-textarea {
   resize: vertical;
@@ -330,6 +385,14 @@
   letter-spacing: 0.04em;
 }
 
+/* ─── Account / Danger zone ──────────────────────────────────────────────────── */
+.account-actions {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
 /* ─── Empty state ────────────────────────────────────────────────────────────── */
 .profile-empty {
   text-align: center;
@@ -356,12 +419,37 @@
   animation: toastIn 0.25s ease, toastOut 0.3s ease 2.5s forwards;
   z-index: 999;
 }
+.profile-toast--error {
+  color: #fff;
+  border-color: var(--red);
+  box-shadow: 4px 4px 0 var(--red);
+}
 @keyframes toastIn {
   from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 @keyframes toastOut {
   to   { opacity: 0; transform: translateY(14px); }
+}
+
+/* ─── Keyboard focus visibility ──────────────────────────────────────────────── */
+.profile-page a:focus-visible,
+.profile-page button:focus-visible,
+.profile-page input:focus-visible,
+.profile-page textarea:focus-visible,
+.profile-avatar__edit:focus-visible {
+  outline: 3px solid var(--blue);
+  outline-offset: 2px;
+}
+
+/* ─── Reduced motion ──────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .profile-page,
+  .profile-toast,
+  .form-input {
+    animation: none !important;
+    transition: none !important;
+  }
 }
 
 /* ─── Responsive tweaks ──────────────────────────────────────────────────────── */
@@ -372,4 +460,5 @@
   .profile-stats .stat-item:nth-child(2n) { border-right: none; }
   .profile-stats .stat-item:nth-child(1),
   .profile-stats .stat-item:nth-child(2)  { border-bottom: 2px solid var(--ink); }
+}
 }

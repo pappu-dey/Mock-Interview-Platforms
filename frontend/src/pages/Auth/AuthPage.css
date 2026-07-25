@@ -1,0 +1,389 @@
+/* AuthPage.css — Auth page & post-login welcome page styles */
+/* Global tokens live in src/global.css (imported in main.jsx) */
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SHARED CONTAINER
+═══════════════════════════════════════════════════════════════════════════ */
+.container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  background-image:
+    linear-gradient(var(--ink) 1px, transparent 1px),
+    linear-gradient(90deg, var(--ink) 1px, transparent 1px);
+  background-size: 32px 32px;
+  background-position: -1px -1px;
+  color: var(--ink);
+  font-family: 'Space Mono', monospace;
+  padding: 2rem 1rem;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* Exit animation when login succeeds */
+.form-exit {
+  opacity: 0;
+  transform: scale(0.96) translateY(-10px);
+  pointer-events: none;
+}
+
+/* Visible keyboard focus everywhere — brutalist, not subtle */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.welcome-card :focus-visible {
+  outline-color: var(--yellow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AUTH FORM CARD
+═══════════════════════════════════════════════════════════════════════════ */
+.form-container {
+  position: relative;
+  width: min(440px, 100%);
+  padding: 2.5rem 2rem 2rem;
+  background: var(--bg);
+  border: var(--border) solid var(--ink);
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+  animation: cardIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.corner-tag {
+  position: absolute;
+  top: -3px;
+  right: -3px;
+  background: var(--ink);
+  color: var(--yellow);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  padding: 0.3rem 0.6rem;
+  border: var(--border) solid var(--ink);
+}
+
+.brand {
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 2.4rem;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  margin: 0 0 1.5rem;
+  line-height: 0.95;
+}
+
+.brand::after {
+  content: '';
+  display: block;
+  width: 64px;
+  height: 6px;
+  margin-top: 0.6rem;
+  background: var(--pink);
+}
+
+/* Toggle tabs */
+.form-toggle {
+  display: flex;
+  border: var(--border) solid var(--ink);
+  margin-bottom: 1.75rem;
+}
+
+.form-toggle button {
+  flex: 1;
+  padding: 0.85rem 1rem;
+  border: none;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Space Mono', monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.form-toggle button+button {
+  border-left: var(--border) solid var(--ink);
+}
+
+.form-toggle .active {
+  background: var(--yellow);
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  margin-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.field-hint {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.field-hint.hint-bad {
+  color: var(--red);
+}
+
+.field-hint.hint-good {
+  color: var(--green);
+}
+
+/* Input + password toggle wrapper */
+.input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.input-wrap input {
+  padding-right: 3rem;
+}
+
+input {
+  border: var(--border) solid var(--ink);
+  outline: none;
+  padding: 0.85rem 0.9rem;
+  background: #fff;
+  color: var(--ink);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.95rem;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, border-color 0.1s ease;
+  width: 100%;
+}
+
+input::placeholder {
+  color: #9a9585;
+}
+
+input:focus {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+input[aria-invalid="true"] {
+  border-color: var(--red);
+}
+
+.peek-btn {
+  position: absolute;
+  right: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  padding: 0.3rem 0.4rem;
+  color: var(--ink);
+  opacity: 0.6;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.peek-btn:hover {
+  opacity: 1;
+}
+
+.forgot {
+  align-self: flex-end;
+  color: var(--ink);
+  font-size: 0.75rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-top: 0.4rem;
+}
+
+.forgot:hover {
+  color: var(--pink);
+}
+
+/* Buttons */
+.submit-btn {
+  width: 100%;
+  margin-top: 1rem;
+  border: var(--border) solid var(--ink);
+  padding: 0.95rem 1rem;
+  background: var(--pink);
+  color: var(--ink);
+  font-family: 'Archivo Black', sans-serif;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  box-shadow: var(--shadow-offset) var(--shadow-offset) 0 var(--ink);
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--yellow);
+}
+
+.submit-btn:active:not(:disabled) {
+  transform: translate(4px, 4px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+/* Loading spinner (currentColor so it matches button text) */
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+p {
+  text-align: center;
+  font-size: 0.8rem;
+  margin-top: 1.1rem;
+}
+
+p a {
+  color: var(--ink);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+p a:hover {
+  color: var(--pink);
+}
+
+/* ── Alert Banners ─────────────────────────────────────────────────────────── */
+.alert {
+  padding: 0.75rem 1rem;
+  border: var(--border) solid var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.5rem;
+  animation: slideIn 0.25s ease;
+  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.alert-error {
+  background: #FFE0E5;
+  border-left: 6px solid var(--red);
+  color: #7a0020;
+}
+
+.alert-success {
+  background: #D6FFF4;
+  border-left: 6px solid var(--green);
+  color: #005A3C;
+}
+
+.alert-icon {
+  flex-shrink: 0;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* role badge */
+.role-badge {
+  display: inline-block;
+  padding: 0.2rem 0.7rem;
+  border: 2px solid var(--ink);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.role-badge.role-student {
+  background: var(--yellow);
+}
+
+.role-badge.role-company {
+  background: #C8E6FF;
+}
+
+.role-badge.role-admin {
+  background: var(--pink);
+  color: #fff;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 420px) {
+  .brand {
+    font-size: 1.9rem;
+  }
+}
