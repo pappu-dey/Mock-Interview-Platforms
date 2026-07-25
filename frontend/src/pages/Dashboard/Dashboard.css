@@ -40,3 +40,84 @@
 .card p {
   color: #555;
 }
+.quicck-actions{
+  margin-top:30px;
+}
+.quick-actions h2{
+  margin-bottom: 15px;
+  color:#2563eb;
+}
+.action-buttons{
+  display:flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.action-buttons button{
+  padding: 12px 20px;
+  border: none;
+  border-radius: 8px;
+  background-color: #2563eb;
+  color: white;
+  cursor:pointer;
+  font-size:16px;
+}
+.action-buttons button:hover{
+  background-color: #1d4ed8;
+}
+.performance-section {
+    margin-top: 30px;
+}
+
+.performance-section h2 {
+    color: #2563eb;
+    margin-bottom: 15px;
+}
+
+.performance-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.performance-card p {
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+.performance-card progress {
+    width: 100%;
+    height: 18px;
+}
+
+.performance-card span {
+    display: block;
+    margin-top: 10px;
+    color: #555;
+}
+.recent-activity {
+    margin-top: 30px;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.recent-activity h2 {
+    color: #2563eb;
+    margin-bottom: 15px;
+}
+
+.recent-activity ul {
+    list-style: none;
+    padding: 0;
+}
+
+.recent-activity li {
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.recent-activity li:last-child {
+    border-bottom: none;
+}
