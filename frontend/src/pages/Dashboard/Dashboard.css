@@ -121,3 +121,47 @@
 .recent-activity li:last-child {
     border-bottom: none;
 }
+.recommendations {
+    margin-top: 30px;
+}
+
+.recommendations h2 {
+    color: #2563eb;
+    margin-bottom: 15px;
+}
+
+.recommendation-card {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.recommendation-card p {
+    margin: 10px 0;
+    color: #444;
+}
+.company-section {
+  margin-top: 30px;
+}
+
+.company-section h2 {
+  color: #2563eb;
+  margin-bottom: 15px;
+}
+
+.company-cards {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.company-card {
+  background: white;
+  padding: 20px;
+  width: 150px;
+  text-align: center;
+  border-radius: 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  font-weight: bold;
+}

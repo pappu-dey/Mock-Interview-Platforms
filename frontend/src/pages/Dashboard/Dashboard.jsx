@@ -56,6 +56,26 @@ function Dashboard() {
     <li>✅ Attempted SQL Quiz</li>
   </ul>
 </div>
+<div className="recommendations">
+  <h2>AI Recommendations</h2>
+
+  <div className="recommendation-card">
+    <p>📚 Practice Binary Tree questions</p>
+    <p>🗄️ Revise SQL Joins and Views</p>
+    <p>💻 Solve 5 Java coding problems</p>
+    <p>🎤 Take an HR Mock Interview</p>
+  </div>
+</div>
+<div className="company-section">
+  <h2>Target Companies</h2>
+
+  <div className="company-cards">
+    <div className="company-card">TCS</div>
+    <div className="company-card">Infosys</div>
+    <div className="company-card">Wipro</div>
+    <div className="company-card">Accenture</div>
+  </div>
+</div>
   </div>
   );
 }
