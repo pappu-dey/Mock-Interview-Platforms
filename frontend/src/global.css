@@ -1,32 +1,81 @@
 /*
  * global.css — Single source of truth for all shared CSS design tokens.
+ * Modern Purple / Violet UI Design System
  *
- * Imported ONCE in main.jsx so every component and page can rely on
- * these variables being available, in the correct cascade order,
- * regardless of which page or component loads first.
- *
+ * Imported ONCE in main.jsx so every component can use these tokens.
  * DO NOT redefine :root variables in any component/page CSS file.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&family=Space+Mono:wght@400;700&family=Archivo+Black&display=swap');
 
 /* ─── Design Tokens ──────────────────────────────────────────────────────────── */
 :root {
-  /* Colours */
-  --bg:             #F4F1E8;
-  --ink:            #0D0D0D;
-  --yellow:         #FFD400;
-  --pink:           #FF3864;
-  --green:          #00C896;
-  --red:            #FF3864;
-  --blue:           #4F8EF7;
+  /* Purple / Violet scale */
+  --p-50:  #F5F3FF;
+  --p-100: #EDE9FE;
+  --p-200: #DDD6FE;
+  --p-300: #C4B5FD;
+  --p-400: #A78BFA;
+  --p-500: #7C6FF5;
+  --p-600: #5B4EE8;
+  --p-700: #4338CA;
+  --p-800: #3730A3;
+  --p-900: #1E1B4B;
 
-  /* Borders & shadows */
-  --border:         3px;           /* used as: border: var(--border) solid var(--ink) */
-  --shadow-offset:  8px;
+  /* Semantic surface tokens */
+  --bg:             #ECE8FF;           /* page background — soft lavender */
+  --surface:        #FFFFFF;           /* card / panel background */
+  --ink:            #1E1B4B;           /* primary text — deep navy-purple */
+  --ink-muted:      rgba(30, 27, 75, 0.5);  /* secondary / muted text */
+
+  /* Brand colours */
+  --primary:        #5B4EE8;           /* main brand colour */
+  --primary-light:  #7C6FF5;           /* lighter hover / gradient end */
+  --primary-dark:   #4338CA;           /* darker active state */
+  --primary-glow:   rgba(91, 78, 232, 0.2); /* focus ring / shadow glow */
+
+  /* Legacy names — remapped to purple palette for backward compat */
+  --mono-08:  #1E1B4B;
+  --mono-18:  #2D2167;
+  --mono-28:  #3730A3;
+  --mono-38:  #4338CA;
+  --mono-48:  #5B4EE8;
+  --mono-58:  #7C6FF5;
+  --mono-68:  #A78BFA;
+  --mono-78:  #C4B5FD;
+  --mono-88:  #DDD6FE;
+  --mono-98:  #F5F3FF;
+
+  --yellow:         #F59E0B;
+  --pink:           var(--primary-light);
+  --blue:           var(--primary);
+  --accent-hover:   var(--primary-dark);
+  --accent-dark-bg: var(--p-900);
+
+  /* Functional signal colours */
+  --green: #10B981;
+  --red:   #EF4444;
+
+  /* Border & Shadow */
+  --border:         1.5px;             /* used as: border: var(--border) solid ... */
+  --border-color:   rgba(91, 78, 232, 0.18);
+  --shadow-offset:  0px;               /* legacy compat — no longer a brutalist offset */
+
+  /* Radius scale */
+  --radius-sm:   8px;
+  --radius:      16px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
+  --radius-full: 9999px;
+
+  /* Shadow scale */
+  --shadow-sm:   0 2px 8px rgba(91, 78, 232, 0.08);
+  --shadow:      0 4px 24px rgba(91, 78, 232, 0.12);
+  --shadow-lg:   0 8px 40px rgba(91, 78, 232, 0.18);
+  --shadow-card: 0 2px 20px rgba(91, 78, 232, 0.10), 0 0 0 1px rgba(91, 78, 232, 0.06);
 
   /* Layout */
-  --nav-height:     64px;
+  --nav-height: 64px;
 }
 
 /* ─── Global Reset ───────────────────────────────────────────────────────────── */
@@ -38,12 +87,14 @@
   padding: 0;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
 }
 
 body {
-  font-family: 'Space Mono', monospace;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;

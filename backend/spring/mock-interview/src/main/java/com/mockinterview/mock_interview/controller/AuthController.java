@@ -1,5 +1,6 @@
 package com.mockinterview.mock_interview.controller;
 
+import com.mockinterview.mock_interview.dto.auth.ForgotPasswordRequest;
 import com.mockinterview.mock_interview.dto.auth.LoginRequest;
 import com.mockinterview.mock_interview.dto.auth.LoginResponse;
 import com.mockinterview.mock_interview.dto.auth.RegisterRequest;
@@ -10,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class AuthController {
 
     private final UserService userService;
@@ -38,6 +39,17 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest request) {
         LoginResponse response = userService.login(request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * POST /api/auth/forgot-password
+     * Public endpoint — no JWT required.
+     * Resets user password by email.
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<RegisterResponse> forgotPassword(@RequestBody ForgotPasswordRequest request) {
+        RegisterResponse response = userService.forgotPassword(request);
         return ResponseEntity.ok(response);
     }
 }

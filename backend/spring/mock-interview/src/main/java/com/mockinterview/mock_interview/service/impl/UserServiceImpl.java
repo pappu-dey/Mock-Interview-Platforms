@@ -1,11 +1,14 @@
 package com.mockinterview.mock_interview.service.impl;
 
+import com.mockinterview.mock_interview.dto.auth.ForgotPasswordRequest;
 import com.mockinterview.mock_interview.dto.auth.LoginRequest;
 import com.mockinterview.mock_interview.dto.auth.LoginResponse;
 import com.mockinterview.mock_interview.dto.auth.RegisterRequest;
 import com.mockinterview.mock_interview.dto.auth.RegisterResponse;
+import com.mockinterview.mock_interview.entity.Profile;
 import com.mockinterview.mock_interview.entity.Role;
 import com.mockinterview.mock_interview.entity.User;
+import com.mockinterview.mock_interview.repository.ProfileRepository;
 import com.mockinterview.mock_interview.repository.UserRepository;
 import com.mockinterview.mock_interview.security.JwtService;
 import com.mockinterview.mock_interview.service.UserService;
@@ -22,17 +25,20 @@ import java.time.LocalDateTime;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final UserDetailsService userDetailsService;
 
     public UserServiceImpl(UserRepository userRepository,
+                           ProfileRepository profileRepository,
                            PasswordEncoder passwordEncoder,
                            JwtService jwtService,
                            AuthenticationManager authenticationManager,
                            UserDetailsService userDetailsService) {
         this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
@@ -53,7 +59,13 @@ public class UserServiceImpl implements UserService {
         user.setRole(Role.valueOf(request.getRole().toUpperCase()));
         user.setCreatedAt(LocalDateTime.now());
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        // Automatically initialize profile record linked to user_id
+        Profile profile = new Profile();
+        profile.setUser(savedUser);
+        profile.setFullName("");
+        profileRepository.save(profile);
 
         return new RegisterResponse("User Registered Successfully");
     }
@@ -81,5 +93,18 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         return new LoginResponse(jwtToken, "Login successful", user.getRole().name());
+    }
+
+    // ─── Forgot Password ─────────────────────────────────────────────────────────
+
+    @Override
+    public RegisterResponse forgotPassword(ForgotPasswordRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("No user found with email: " + request.getEmail()));
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return new RegisterResponse("Password reset successfully! You can now log in.");
     }
 }

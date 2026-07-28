@@ -106,6 +106,17 @@ async function login(email, password) {
 }
 
 /**
+ * Reset user password (Forgot Password).
+ *
+ * @param {string} email
+ * @param {string} newPassword
+ * @returns {Promise<{ message: string }>}
+ */
+async function forgotPassword(email, newPassword) {
+  return post('/forgot-password', { email, newPassword })
+}
+
+/**
  * Log out — clears localStorage and returns to caller.
  */
 function logout() {
@@ -116,6 +127,7 @@ function logout() {
 const authService = {
   register,
   login,
+  forgotPassword,
   logout,
   isAuthenticated,
   getCurrentUser,

@@ -1,21 +1,23 @@
-/* ─── Button.css ──────────────────────────────────────────────────────────── */
+/* ─── Button.css — Modern Purple UI ──────────────────────────────────────── */
+/* Design tokens come from src/global.css — no @import or :root here. */
 
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  font-family: 'Archivo Black', sans-serif;
+  font-family: 'Inter', sans-serif;
   font-size: 0.88rem;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   cursor: pointer;
-  border: 3px solid var(--ink, #0D0D0D);
+  border: none;
+  border-radius: var(--radius-sm);
   transition:
-    background 0.15s ease,
-    transform  0.1s ease,
-    box-shadow 0.1s ease,
-    color      0.15s ease;
+    background 0.18s ease,
+    transform  0.18s ease,
+    box-shadow 0.18s ease,
+    opacity    0.15s ease;
   white-space: nowrap;
   text-decoration: none;
   line-height: 1;
@@ -25,7 +27,7 @@
 
 /* ── press effect ── */
 .btn:active:not(:disabled) {
-  transform: translate(4px, 4px);
+  transform: translateY(1px) scale(0.99);
 }
 
 /* ── disabled ── */
@@ -36,93 +38,88 @@
 }
 
 /* ─── Sizes ─────────────────────────────────────────────────────────────────── */
-.btn--sm  { padding: 0.5rem 1rem;    font-size: 0.75rem; }
-.btn--md  { padding: 0.85rem 1.4rem; font-size: 0.88rem; }
-.btn--lg  { padding: 1.1rem 2rem;    font-size: 1rem;    }
+.btn--sm   { padding: 0.5rem 1rem;    font-size: 0.78rem; border-radius: 8px; }
+.btn--md   { padding: 0.8rem 1.5rem;  font-size: 0.88rem; }
+.btn--lg   { padding: 1rem 2rem;      font-size: 0.95rem; }
 .btn--full { width: 100%; }
 
 /* ─── Variants ──────────────────────────────────────────────────────────────── */
 
-/* Primary — pink with neo shadow */
+/* Primary — gradient purple */
 .btn--primary {
-  background: var(--pink, #FF3864);
-  color: var(--ink, #0D0D0D);
-  box-shadow: 6px 6px 0 var(--ink, #0D0D0D);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(91, 78, 232, 0.35);
 }
 .btn--primary:hover:not(:disabled) {
-  background: var(--yellow, #FFD400);
-  transform: translate(-1px, -1px);
-  box-shadow: 8px 8px 0 var(--ink, #0D0D0D);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(91, 78, 232, 0.48);
 }
 .btn--primary:active:not(:disabled) {
-  box-shadow: 2px 2px 0 var(--ink, #0D0D0D);
+  box-shadow: 0 2px 8px rgba(91, 78, 232, 0.3);
 }
 
-/* Secondary — transparent / outline */
+/* Secondary — soft purple outline */
 .btn--secondary {
-  background: transparent;
-  color: var(--ink, #0D0D0D);
-  box-shadow: 4px 4px 0 var(--ink, #0D0D0D);
+  background: var(--p-100);
+  color: var(--primary);
+  border: 1.5px solid rgba(91, 78, 232, 0.25);
+  box-shadow: none;
 }
 .btn--secondary:hover:not(:disabled) {
-  background: var(--yellow, #FFD400);
-  transform: translate(-1px, -1px);
-  box-shadow: 6px 6px 0 var(--ink, #0D0D0D);
-}
-.btn--secondary:active:not(:disabled) {
-  box-shadow: 2px 2px 0 var(--ink, #0D0D0D);
+  background: var(--p-200);
+  border-color: var(--primary);
+  transform: translateY(-1px);
 }
 
-/* Yellow accent */
+/* Accent — soft lavender fill */
 .btn--yellow {
-  background: var(--yellow, #FFD400);
-  color: var(--ink, #0D0D0D);
-  box-shadow: 6px 6px 0 var(--ink, #0D0D0D);
+  background: var(--p-200);
+  color: var(--primary-dark);
+  box-shadow: none;
+  border: 1.5px solid rgba(91, 78, 232, 0.2);
 }
 .btn--yellow:hover:not(:disabled) {
-  background: var(--pink, #FF3864);
-  transform: translate(-1px, -1px);
-  box-shadow: 8px 8px 0 var(--ink, #0D0D0D);
-}
-.btn--yellow:active:not(:disabled) {
-  box-shadow: 2px 2px 0 var(--ink, #0D0D0D);
+  background: var(--p-300);
+  color: var(--primary-dark);
+  transform: translateY(-1px);
 }
 
-/* Ghost — dark theme (used on dark backgrounds) */
+/* Ghost — for dark backgrounds */
 .btn--ghost {
-  background: transparent;
-  color: rgba(255,255,255,0.75);
-  border-color: rgba(255,255,255,0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: none;
 }
 .btn--ghost:hover:not(:disabled) {
-  background: rgba(255,56,100,0.12);
-  border-color: var(--pink, #FF3864);
-  color: var(--pink, #FF3864);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #fff;
 }
 
 /* Danger */
 .btn--danger {
-  background: #FF3864;
+  background: var(--red);
   color: #fff;
-  border-color: #c0002c;
-  box-shadow: 4px 4px 0 #c0002c;
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+  border: none;
 }
 .btn--danger:hover:not(:disabled) {
-  background: #c0002c;
-  transform: translate(-1px, -1px);
-  box-shadow: 6px 6px 0 #c0002c;
+  background: #DC2626;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.4);
 }
 
 /* ─── Loading spinner ────────────────────────────────────────────────────────── */
 .btn__spinner {
   width: 14px;
   height: 14px;
-  border: 2px solid currentColor;
-  border-top-color: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: currentColor;
   border-radius: 50%;
   animation: btn-spin 0.7s linear infinite;
+  flex-shrink: 0;
 }
-@keyframes btn-spin {
-  to { transform: rotate(360deg); }
-}
+
+@keyframes btn-spin { to { transform: rotate(360deg); } }

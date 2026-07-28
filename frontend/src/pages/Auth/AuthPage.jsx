@@ -2,14 +2,12 @@ import React, { useState, useEffect, useRef } from 'react'
 import './AuthPage.css'
 import authService from '../../services/authService'
 
-const API_BASE = 'http://localhost:8080/api/auth'
-
 // ─── Helper: friendly server error message ───────────────────────────────────
 function parseError(err, fallback) {
-  if (err && err.name === 'TypeError' && err.message.includes('fetch')) {
+  if (err && err.name === 'TypeError' && err.message?.includes('fetch')) {
     return '⚡ Cannot connect to server — make sure the Spring Boot backend is running on port 8080.'
   }
-  return fallback
+  return err?.message || fallback
 }
 
 // ─── Password field with show/hide toggle ─────────────────────────────────────
@@ -40,9 +38,10 @@ function PasswordField({ id, value, onChange, placeholder = '••••••�
   )
 }
 
-// ─── Auth Page (Login / Register) ─────────────────────────────────────────────
+// ─── Auth Page (Login / Register / Forgot Password) ──────────────────────────
 export default function AuthPage({ onLoginSuccess = () => { } }) {
-  const [isLogin, setIsLogin] = useState(true)
+  // mode: 'login' | 'register' | 'forgot'
+  const [mode, setMode] = useState('login')
   const [role, setRole] = useState('student')
 
   const [email, setEmail] = useState('')
@@ -58,14 +57,14 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
 
   const emailRef = useRef(null)
 
-  // Autofocus the email field whenever the form (re)appears
+  // Autofocus the email field whenever mode changes
   useEffect(() => {
     emailRef.current?.focus()
-  }, [isLogin])
+  }, [mode])
 
-  // ─── Switch tabs ──────────────────────────────────────────────────────────
-  const switchTab = (toLogin) => {
-    setIsLogin(toLogin)
+  // ─── Switch mode ────────────────────────────────────────────────────────────
+  const switchMode = (newMode) => {
+    setMode(newMode)
     setError('')
     setSuccessMsg('')
     setEmail('')
@@ -73,13 +72,12 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
     setPassword2('')
   }
 
-  // Clear the error banner as soon as the person starts correcting their input
   const withClearError = (setter) => (e) => {
     if (error) setError('')
     setter(e.target.value)
   }
 
-  const passwordsMismatch = !isLogin && password2.length > 0 && password !== password2
+  const passwordsMismatch = (mode === 'register' || mode === 'forgot') && password2.length > 0 && password !== password2
 
   // ─── Register ─────────────────────────────────────────────────────────────
   const handleRegister = async (e) => {
@@ -94,21 +92,12 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
 
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE}/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, role }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.message || 'Registration failed.')
-      } else {
-        setSuccessMsg(data.message || 'Account created! You can now log in.')
-        setEmail('')
-        setPassword('')
-        setPassword2('')
-        setTimeout(() => switchTab(true), 1600)
-      }
+      const res = await authService.register(email, password, role)
+      setSuccessMsg(res.message || 'Account created! You can now log in.')
+      setEmail('')
+      setPassword('')
+      setPassword2('')
+      setTimeout(() => switchMode('login'), 1600)
     } catch (err) {
       setError(parseError(err, 'Registration failed. Please try again.'))
     } finally {
@@ -124,28 +113,39 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
     setLoading(true)
 
     try {
-      const res = await fetch(`${API_BASE}/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      })
-      const data = await res.json()
-      if (!res.ok) {
-        setError(data.message || 'Invalid credentials.')
-      } else {
-        // Persist session
-        localStorage.setItem('jwt_token', data.token)
-        localStorage.setItem('user_role', data.role)
-        localStorage.setItem('user_email', email)
-
-        // Smooth exit animation, then notify App to re-sync → App routes to Dashboard
-        setExiting(true)
-        setTimeout(() => {
-          onLoginSuccess()
-        }, 400)
-      }
+      await authService.login(email, password)
+      setExiting(true)
+      setTimeout(() => {
+        onLoginSuccess()
+      }, 400)
     } catch (err) {
-      setError(parseError(err, 'Login failed. Please try again.'))
+      setError(parseError(err, 'Invalid credentials. Please try again.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ─── Forgot Password ──────────────────────────────────────────────────────
+  const handleForgotPassword = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSuccessMsg('')
+
+    if (password !== password2) {
+      setError('Passwords do not match.')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const res = await authService.forgotPassword(email, password)
+      setSuccessMsg(res.message || 'Password reset successfully! Redirecting to login…')
+      setEmail('')
+      setPassword('')
+      setPassword2('')
+      setTimeout(() => switchMode('login'), 1800)
+    } catch (err) {
+      setError(parseError(err, 'Could not reset password. Please try again.'))
     } finally {
       setLoading(false)
     }
@@ -157,26 +157,34 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
       <div className="form-container">
         <div className="corner-tag">AUTH.001</div>
 
-        <h1 className="brand">ACCESS</h1>
+        <h1 className="brand">
+          {mode === 'forgot' ? 'RESET' : 'ACCESS'}
+        </h1>
 
-        <div className="form-toggle">
-          <button
-            type="button"
-            className={isLogin ? 'active' : ''}
-            onClick={() => switchTab(true)}
-            aria-pressed={isLogin}
-          >
-            Login
-          </button>
-          <button
-            type="button"
-            className={!isLogin ? 'active' : ''}
-            onClick={() => switchTab(false)}
-            aria-pressed={!isLogin}
-          >
-            Sign up
-          </button>
-        </div>
+        {mode !== 'forgot' ? (
+          <div className="form-toggle">
+            <button
+              type="button"
+              className={mode === 'login' ? 'active' : ''}
+              onClick={() => switchMode('login')}
+              aria-pressed={mode === 'login'}
+            >
+              Login
+            </button>
+            <button
+              type="button"
+              className={mode === 'register' ? 'active' : ''}
+              onClick={() => switchMode('register')}
+              aria-pressed={mode === 'register'}
+            >
+              Sign up
+            </button>
+          </div>
+        ) : (
+          <p style={{ marginTop: '-0.5rem', marginBottom: '1.25rem', textAlign: 'left' }}>
+            Enter your account email and new password.
+          </p>
+        )}
 
         {/* ── Banners ── */}
         {error && (
@@ -192,7 +200,7 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
           </div>
         )}
 
-        {isLogin ? (
+        {mode === 'login' && (
           <form className="form" onSubmit={handleLogin}>
             <label className="field-label" htmlFor="login-email">Email</label>
             <input
@@ -214,7 +222,13 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
               autoComplete="current-password"
             />
 
-            <a href="#" className="forgot">Forgot password?</a>
+            <a
+              href="#"
+              className="forgot"
+              onClick={(e) => { e.preventDefault(); switchMode('forgot') }}
+            >
+              Forgot password?
+            </a>
 
             <button type="submit" className="submit-btn" disabled={loading}>
               {loading && <span className="spinner" aria-hidden="true" />}
@@ -223,10 +237,12 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
 
             <p>
               Not a member?{' '}
-              <a href="#" onClick={(e) => { e.preventDefault(); switchTab(false) }}>Sign up</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); switchMode('register') }}>Sign up</a>
             </p>
           </form>
-        ) : (
+        )}
+
+        {mode === 'register' && (
           <form className="form" onSubmit={handleRegister}>
             <label className="field-label" htmlFor="signup-email">Email</label>
             <input
@@ -251,7 +267,7 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
             <label className="field-label" htmlFor="signup-password2">
               Re-enter password
               {passwordsMismatch && <span className="field-hint hint-bad">Doesn't match</span>}
-              {!isLogin && password2.length > 0 && !passwordsMismatch && (
+              {password2.length > 0 && !passwordsMismatch && (
                 <span className="field-hint hint-good">Matches ✓</span>
               )}
             </label>
@@ -289,7 +305,57 @@ export default function AuthPage({ onLoginSuccess = () => { } }) {
 
             <p>
               Already have an account?{' '}
-              <a href="#" onClick={(e) => { e.preventDefault(); switchTab(true) }}>Log in</a>
+              <a href="#" onClick={(e) => { e.preventDefault(); switchMode('login') }}>Log in</a>
+            </p>
+          </form>
+        )}
+
+        {mode === 'forgot' && (
+          <form className="form" onSubmit={handleForgotPassword}>
+            <label className="field-label" htmlFor="forgot-email">Account Email</label>
+            <input
+              ref={emailRef}
+              id="forgot-email"
+              type="email"
+              placeholder="you@domain.com"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={withClearError(setEmail)}
+            />
+
+            <label className="field-label" htmlFor="forgot-password">New Password</label>
+            <PasswordField
+              id="forgot-password"
+              value={password}
+              onChange={withClearError(setPassword)}
+              autoComplete="new-password"
+              placeholder="New password"
+            />
+
+            <label className="field-label" htmlFor="forgot-password2">
+              Re-enter New Password
+              {passwordsMismatch && <span className="field-hint hint-bad">Doesn't match</span>}
+              {password2.length > 0 && !passwordsMismatch && (
+                <span className="field-hint hint-good">Matches ✓</span>
+              )}
+            </label>
+            <PasswordField
+              id="forgot-password2"
+              value={password2}
+              onChange={withClearError(setPassword2)}
+              autoComplete="new-password"
+              placeholder="Re-enter new password"
+            />
+
+            <button type="submit" className="submit-btn" disabled={loading || passwordsMismatch}>
+              {loading && <span className="spinner" aria-hidden="true" />}
+              {loading ? 'Updating Password…' : 'Reset Password →'}
+            </button>
+
+            <p>
+              Remembered your password?{' '}
+              <a href="#" onClick={(e) => { e.preventDefault(); switchMode('login') }}>← Back to Login</a>
             </p>
           </form>
         )}

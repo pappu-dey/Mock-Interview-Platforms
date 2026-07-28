@@ -1,5 +1,6 @@
 package com.mockinterview.mock_interview.service;
 
+import com.mockinterview.mock_interview.dto.auth.ForgotPasswordRequest;
 import com.mockinterview.mock_interview.dto.auth.LoginRequest;
 import com.mockinterview.mock_interview.dto.auth.LoginResponse;
 import com.mockinterview.mock_interview.dto.auth.RegisterRequest;
@@ -11,4 +12,5 @@ public interface UserService {
 
     LoginResponse login(LoginRequest request);
 
+    RegisterResponse forgotPassword(ForgotPasswordRequest request);
 }
