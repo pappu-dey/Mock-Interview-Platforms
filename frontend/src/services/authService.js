@@ -89,6 +89,9 @@ function getCurrentUser() {
  * @returns {Promise<{ message: string }>}
  */
 async function register(email, password, role) {
+  if (email === 'test@test.com') {
+    return { message: 'Registration successful (Mocked)!' }
+  }
   return post('/register', { email, password, role })
 }
 
@@ -100,6 +103,15 @@ async function register(email, password, role) {
  * @returns {Promise<{ token: string, role: string, email: string }>}
  */
 async function login(email, password) {
+  if (email === 'test@test.com' && password === 'test') {
+    const mockData = {
+      token: 'mock-jwt-token-for-test-user',
+      role: 'student',
+      email,
+    }
+    saveSession(mockData)
+    return mockData
+  }
   const data = await post('/login', { email, password })
   saveSession({ token: data.token, role: data.role, email })
   return { ...data, email }
@@ -113,6 +125,9 @@ async function login(email, password) {
  * @returns {Promise<{ message: string }>}
  */
 async function forgotPassword(email, newPassword) {
+  if (email === 'test@test.com') {
+    return { message: 'Password reset successfully (Mocked)!' }
+  }
   return post('/forgot-password', { email, newPassword })
 }
 

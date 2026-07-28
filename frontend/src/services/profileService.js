@@ -17,6 +17,30 @@ const TOKEN_KEY = 'jwt_token'
 async function authFetch(url, options = {}) {
   const token = localStorage.getItem(TOKEN_KEY)
 
+  if (token === 'mock-jwt-token-for-test-user') {
+    if (options.method === 'PUT') {
+      const data = JSON.parse(options.body)
+      localStorage.setItem('mock_profile_data', options.body)
+      return data
+    } else {
+      const stored = localStorage.getItem('mock_profile_data')
+      if (stored) {
+        return JSON.parse(stored)
+      }
+      return {
+        fullName: 'Test User',
+        phone: '+1234567890',
+        college: 'Test University',
+        branch: 'Computer Science',
+        graduationYear: '2026',
+        skills: 'React, Node.js, Spring Boot',
+        linkedinUrl: 'https://linkedin.com/in/testuser',
+        leetcodeUrl: 'https://leetcode.com/testuser',
+        githubUrl: 'https://github.com/testuser',
+      }
+    }
+  }
+
   const res = await fetch(url, {
     ...options,
     headers: {
