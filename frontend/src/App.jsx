@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import Navbar      from './components/Navbar'
-import AuthPage    from './pages/Auth/AuthPage'
-import Dashboard   from './pages/Dashboard/Dashboard'
-import Profile     from './pages/Profile/Profile'
-import Courses     from './pages/Courses/Courses'
-import Practice    from './pages/Practice/Practice'
-import LandingPage from './pages/LandingPage/LandingPage'
-import authService from './services/authService'
+import Navbar          from './components/Navbar'
+import AuthPage        from './pages/Auth/AuthPage'
+import Dashboard       from './pages/Dashboard/Dashboard'
+import Profile         from './pages/Profile/Profile'
+import LandingPage     from './pages/LandingPage/LandingPage'
+import MockInterview   from './pages/mockinterview/mockinterview'
+import authService     from './services/authService'
 
 // ─── Thin router helper ────────────────────────────────────────────────────────
 function useRoute() {
@@ -67,9 +66,11 @@ export default function App() {
   } else if (isAuthed) {
     if (route === '/profile') {
       page = <Profile user={user} onLogout={handleLogout} />
+    } else if (route === '/interview') {
+      page = <MockInterview />
     } else {
       // authenticated default → Dashboard
-      page = <Dashboard />
+      page = <Dashboard onNavigate={handleNavigate} />
     }
   } else {
     if (route === '/login' || route === '/register') {

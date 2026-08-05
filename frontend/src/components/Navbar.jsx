@@ -104,10 +104,10 @@ export default function Navbar({
             href="/"
             className="navbar__logo"
             onClick={(e) => { e.preventDefault(); handleNav('/') }}
-            aria-label="Mock Interview Platform home"
+            aria-label="PrepPilot home"
           >
             <span className="navbar__logo-dot" aria-hidden="true" />
-            MIP
+            PrepPilot
           </a>
 
           {/* ── Centre links ── */}
