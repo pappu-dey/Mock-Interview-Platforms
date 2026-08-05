@@ -59,7 +59,11 @@ export default function App() {
   // ── Page rendering ──────────────────────────────────────────────────────────
   let page
 
-  if (isAuthed) {
+  if (route === '/practice') {
+    page = <Practice />
+  } else if (route === '/courses') {
+    page = <Courses />
+  } else if (isAuthed) {
     if (route === '/profile') {
       page = <Profile user={user} onLogout={handleLogout} />
     } else if (route === '/interview') {
