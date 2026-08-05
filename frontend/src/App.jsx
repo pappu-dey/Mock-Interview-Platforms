@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react'
-import Navbar          from './components/Navbar'
-import AuthPage        from './pages/Auth/AuthPage'
-import Dashboard       from './pages/Dashboard/Dashboard'
-import Profile         from './pages/Profile/Profile'
-import LandingPage     from './pages/LandingPage/LandingPage'
-import MockInterview   from './pages/mockinterview/mockinterview'
-import authService     from './services/authService'
+import Navbar from './components/Navbar'
+import AuthPage from './pages/Auth/AuthPage'
+import Dashboard from './pages/Dashboard/Dashboard'
+import Profile from './pages/Profile/Profile'
+import LandingPage from './pages/LandingPage/LandingPage'
+import MockInterview from './pages/mockinterview/mockinterview'
+import Practice from './pages/Practice/Practice'
+import Courses from './pages/Courses/Courses'
+import Performance from './pages/Performance/Performance'
+import Resume from './pages/Resume/Resume'
+import Companies from './pages/Companies/Companies'
+import Settings from './pages/Settings/Settings'
+import Support from './pages/Support/Support'
+import authService from './services/authService'
 
 // ─── Thin router helper ────────────────────────────────────────────────────────
 function useRoute() {
@@ -30,10 +37,10 @@ export default function App() {
 
   // ── Auth state ──────────────────────────────────────────────────────────────
   const [isAuthed, setIsAuthed] = useState(() => authService.isAuthenticated())
-  const [user,     setUser]     = useState(() => authService.getCurrentUser())
+  const [user, setUser] = useState(() => authService.getCurrentUser())
 
   function syncAuth() {
-    const authed      = authService.isAuthenticated()
+    const authed = authService.isAuthenticated()
     const currentUser = authService.getCurrentUser()
     setIsAuthed(authed)
     setUser(currentUser)
@@ -61,6 +68,16 @@ export default function App() {
 
   if (route === '/practice') {
     page = <Practice />
+  } else if (route === '/performance') {
+    page = <Performance />
+  } else if (route === '/resume') {
+    page = <Resume />
+  } else if (route === '/companies') {
+    page = <Companies />
+  } else if (route === '/settings') {
+    page = <Settings />
+  } else if (route === '/support') {
+    page = <Support />
   } else if (route === '/courses') {
     page = <Courses />
   } else if (isAuthed) {
