@@ -1,5 +1,21 @@
-import React from 'react';
-import './Dashboard.css';
+import React from "react";
+import "./Dashboard.css";
+import authService from "../../services/authService";
+
+// ── derive display name & initials from email ──────────────────────────────
+function nameFromEmail(email = '') {
+  if (!email) return 'User'
+  const local = email.split('@')[0]
+  return local
+    .split(/[._-]/)
+    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+    .join(' ')
+}
+function initialsFromEmail(email = '') {
+  const parts = (email.split('@')[0] || '').split(/[._-]/)
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
+  return (email.slice(0, 2) || '??').toUpperCase()
+}
 
 // ---- small inline icon set (no external icon library required) ----
 const Icon = {
@@ -75,66 +91,70 @@ const Icon = {
 
 // ---- data (swap these for real data / API results) ----
 const NAV_MAIN = [
-  { label: 'Dashboard', icon: Icon.Grid, active: true },
-  { label: 'Practice', icon: Icon.Edit },
-  { label: 'Mock Interviews', icon: Icon.Calendar },
-  { label: 'Performance', icon: Icon.Chart },
-  { label: 'Resume', icon: Icon.File },
-  { label: 'Companies', icon: Icon.Building },
+  { label: "Dashboard", icon: Icon.Grid, active: true, target: "dashboard" },
+  { label: "Practice", icon: Icon.Edit },
+  { label: "Mock Interviews", icon: Icon.Calendar, target: "/interview" },
+  { label: "Performance", icon: Icon.Chart },
+  { label: "Resume", icon: Icon.File },
+  { label: "Companies", icon: Icon.Building },
 ];
 
 const NAV_GENERAL = [
-  { label: 'Settings', icon: Icon.Settings },
-  { label: 'Support', icon: Icon.Support },
+  { label: "Settings", icon: Icon.Settings },
+  { label: "Support", icon: Icon.Support },
 ];
 
 const STATS = [
-  { title: 'Total Interviews', number: '12', change: '+3 this wk', icon: Icon.Users },
-  { title: 'Average Score', number: '85%', change: '+5.2%', icon: Icon.Trend },
-  { title: 'Questions Solved', number: '120', change: '+18 solved', icon: Icon.Book },
+  { title: "Total Interviews", number: "12", change: "+3 this wk", icon: Icon.Users },
+  { title: "Average Score", number: "85%", change: "+5.2%", icon: Icon.Trend },
+  { title: "Questions Solved", number: "120", change: "+18 solved", icon: Icon.Book },
 ];
 
 const CHART_DATA = [
-  { label: 'Java', height: 52, color: 'var(--accent-light)' },
-  { label: 'DSA', height: 78, color: 'var(--accent)' },
-  { label: 'SQL', height: 64, color: '#EFE2D3' },
-  { label: 'System', height: 90, color: '#C97F4A' },
-  { label: 'HR', height: 45, color: 'var(--accent-light)' },
-  { label: 'Behav.', height: 70, color: 'var(--accent)' },
+  { label: "Java", height: 52, color: "var(--accent-light)" },
+  { label: "DSA", height: 78, color: "var(--accent)" },
+  { label: "SQL", height: 64, color: "#EFE2D3" },
+  { label: "System", height: 90, color: "#C97F4A" },
+  { label: "HR", height: 45, color: "var(--accent-light)" },
+  { label: "Behav.", height: 70, color: "var(--accent)" },
 ];
 
 const COMPANIES = [
-  { name: 'TCS', role: 'Software Engineer', readiness: 82, status: 'Ready', logoBg: '#3C6FBB', initials: 'TCS' },
-  { name: 'Infosys', role: 'Systems Engineer', readiness: 67, status: 'In Progress', logoBg: '#1C6DB0', initials: 'IN' },
-  { name: 'Wipro', role: 'Project Engineer', readiness: 54, status: 'In Progress', logoBg: '#5B2B82', initials: 'WI' },
-  { name: 'Accenture', role: 'Associate Developer', readiness: 90, status: 'Ready', logoBg: '#7C2A8C', initials: 'AC' },
+  { name: "TCS", role: "Software Engineer", readiness: 82, status: "Ready", logoBg: "#3C6FBB", initials: "TCS" },
+  { name: "Infosys", role: "Systems Engineer", readiness: 67, status: "In Progress", logoBg: "#1C6DB0", initials: "IN" },
+  { name: "Wipro", role: "Project Engineer", readiness: 54, status: "In Progress", logoBg: "#5B2B82", initials: "WI" },
+  { name: "Accenture", role: "Associate Developer", readiness: 90, status: "Ready", logoBg: "#7C2A8C", initials: "AC" },
 ];
 
 const MEETINGS = [
-  { title: 'Technical Mock Interview', subtitle: 'with Ananya Kapoor', time: '3:00 PM', initials: 'TM', color: '#C97F4A' },
-  { title: 'HR Round Practice', subtitle: 'with Rahul Mehta', time: '6:30 PM', initials: 'HR', color: '#E4A16A' },
-  { title: 'SQL Quiz Review', subtitle: 'Self-paced', time: 'Tomorrow', initials: 'SQ', color: '#8C8C8C' },
+  { title: "Technical Mock Interview", subtitle: "with Ananya Kapoor", time: "3:00 PM", initials: "TM", color: "#C97F4A" },
+  { title: "HR Round Practice", subtitle: "with Rahul Mehta", time: "6:30 PM", initials: "HR", color: "#E4A16A" },
+  { title: "SQL Quiz Review", subtitle: "Self-paced", time: "Tomorrow", initials: "SQ", color: "#8C8C8C" },
 ];
 
 const RECOMMENDATIONS = [
-  { label: 'Binary Tree questions', value: 40 },
-  { label: 'SQL Joins & Views', value: 65 },
-  { label: 'Java coding problems', value: 25 },
-  { label: 'HR Mock Interview', value: 80 },
+  { label: "Binary Tree questions", value: 40 },
+  { label: "SQL Joins & Views", value: 65 },
+  { label: "Java coding problems", value: 25 },
+  { label: "HR Mock Interview", value: 80 },
 ];
 
-function Sidebar() {
+function Sidebar({ onNavigate }) {
   return (
     <aside className="sidebar">
       <div className="logo">
         <div className="logo-mark">P</div>
-        <div className="logo-text">Prepline</div>
+        <div className="logo-text">PrepPilot</div>
       </div>
 
       <nav className="nav-group">
         <div className="nav-label">Menu</div>
-        {NAV_MAIN.map(({ label, icon: ItemIcon, active }) => (
-          <button key={label} className={`nav-item${active ? ' active' : ''}`}>
+        {NAV_MAIN.map(({ label, icon: ItemIcon, active, target }) => (
+          <button
+            key={label}
+            className={`nav-item${active ? " active" : ""}`}
+            onClick={() => target && onNavigate(target)}
+          >
             <ItemIcon />
             {label}
           </button>
@@ -151,25 +171,24 @@ function Sidebar() {
         ))}
       </nav>
 
-      <div className="sidebar-footer">
-        <p>Upgrade to Pro for unlimited mock interviews</p>
-        <button>Upgrade Plan</button>
-      </div>
+
     </aside>
   );
 }
 
-function Header() {
+function Header({ user }) {
+  const displayName = nameFromEmail(user?.email)
+  const avatarInitials = initialsFromEmail(user?.email)
   return (
     <div className="header">
       <div>
         <h1>Dashboard</h1>
-        <p className="sub">Welcome back — let's continue your interview prep.</p>
+        <p className="sub">Welcome back, {displayName} — let's continue your interview prep.</p>
       </div>
       <button className="profile-pill">
-        <div className="avatar">CS</div>
+        <div className="avatar">{avatarInitials}</div>
         <div>
-          <div className="name">Carla Sanford</div>
+          <div className="name">{displayName}</div>
         </div>
         <Icon.ChevronDown />
       </button>
@@ -219,9 +238,9 @@ function AnalyticsCard() {
           <h4>Your Mentors</h4>
           <div className="team-row">
             <div className="team-avatars">
-              <div className="avatar" style={{ background: '#C97F4A' }}>AK</div>
-              <div className="avatar" style={{ background: '#E4A16A' }}>RM</div>
-              <div className="avatar" style={{ background: '#1B1B1D' }}>SD</div>
+              <div className="avatar" style={{ background: "#C97F4A" }}>AK</div>
+              <div className="avatar" style={{ background: "#E4A16A" }}>RM</div>
+              <div className="avatar" style={{ background: "#1B1B1D" }}>SD</div>
             </div>
           </div>
           <p>3 mentors reviewed your last mock interview and left feedback.</p>
@@ -266,7 +285,7 @@ function CompaniesTable() {
                 </div>
               </td>
               <td>
-                <span className={`status-pill ${status === 'Ready' ? 'status-ready' : 'status-progress'}`}>
+                <span className={`status-pill ${status === "Ready" ? "status-ready" : "status-progress"}`}>
                   {status}
                 </span>
               </td>
@@ -278,7 +297,7 @@ function CompaniesTable() {
   );
 }
 
-function UpcomingInterviews() {
+function UpcomingInterviews({ onNavigate }) {
   return (
     <div className="dark-card">
       <div className="dark-card-head">
@@ -286,7 +305,14 @@ function UpcomingInterviews() {
         <span>{MEETINGS.length} today</span>
       </div>
       {MEETINGS.map(({ title, subtitle, time, initials, color }) => (
-        <div className="meeting-row" key={title}>
+        <div
+          className="meeting-row"
+          key={title}
+          role="button"
+          tabIndex={0}
+          onClick={() => onNavigate("/interview")}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onNavigate("/interview")}
+        >
           <div className="meeting-avatars">
             <div className="avatar" style={{ background: color }}>{initials}</div>
           </div>
@@ -320,21 +346,22 @@ function Recommendations() {
   );
 }
 
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }) {
+  const user = authService.getCurrentUser()
   return (
     <div className="dashboard-page">
       <div className="shell">
-        <Sidebar />
+        <Sidebar onNavigate={onNavigate} />
 
         <main className="main">
-          <Header />
+          <Header user={user} />
           <StatsRow />
           <AnalyticsCard />
           <CompaniesTable />
         </main>
 
         <aside className="right">
-          <UpcomingInterviews />
+          <UpcomingInterviews onNavigate={onNavigate} />
           <Recommendations />
         </aside>
       </div>
