@@ -3,6 +3,8 @@ import Navbar      from './components/Navbar'
 import AuthPage    from './pages/Auth/AuthPage'
 import Dashboard   from './pages/Dashboard/Dashboard'
 import Profile     from './pages/Profile/Profile'
+import Courses     from './pages/Courses/Courses'
+import Practice    from './pages/Practice/Practice'
 import LandingPage from './pages/LandingPage/LandingPage'
 import authService from './services/authService'
 
@@ -58,7 +60,11 @@ export default function App() {
   // ── Page rendering ──────────────────────────────────────────────────────────
   let page
 
-  if (isAuthed) {
+  if (route === '/practice') {
+    page = <Practice />
+  } else if (route === '/courses') {
+    page = <Courses />
+  } else if (isAuthed) {
     if (route === '/profile') {
       page = <Profile user={user} onLogout={handleLogout} />
     } else {

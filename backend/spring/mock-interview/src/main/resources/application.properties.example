@@ -19,3 +19,8 @@ server.port=8080
 # Generate a strong 256-bit hex secret. Example: openssl rand -hex 32
 jwt.secret=<YOUR_JWT_SECRET_HEX>
 jwt.expiration=86400000
+
+# ─── Cloudinary ──────────────────────────────────────────────
+# Fill in your real Cloudinary URL or set the CLOUDINARY_URL env variable
+cloudinary.url=${CLOUDINARY_URL:cloudinary://<YOUR_API_KEY>:<YOUR_API_SECRET>@<YOUR_CLOUD_NAME>}
+

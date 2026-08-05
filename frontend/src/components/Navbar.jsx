@@ -73,15 +73,18 @@ export default function Navbar({
           { label: 'Dashboard',   href: '/dashboard' },
           { label: 'Post a Job',  href: '/post-job'  },
           { label: 'Candidates',  href: '/candidates' },
+          { label: 'Practice',    href: '/practice'  },
         ]
       : [
           { label: 'Dashboard',       href: '/dashboard'   },
           { label: 'Mock Interview',  href: '/interview'   },
           { label: 'Browse Jobs',     href: '/jobs'        },
+          { label: 'Practice',        href: '/practice'    },
         ]
     : [
         { label: 'Features', href: '#features' },
         { label: 'How it works', href: '#how' },
+        { label: 'Practice', href: '/practice' },
         { label: 'Pricing', href: '#pricing' },
       ]
 
