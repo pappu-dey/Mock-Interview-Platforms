@@ -124,9 +124,9 @@ async function extractTextFromFile(file) {
   const name = file.name.toLowerCase()
 
   if (name.endsWith('.pdf')) {
-    const pdfjs = await import('pdfjs-dist/build/pdf')
+    const pdfjs = await import('pdfjs-dist')
     pdfjs.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js'
+      `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`
     const buf = await file.arrayBuffer()
     const doc = await pdfjs.getDocument({ data: buf }).promise
     let text = ''

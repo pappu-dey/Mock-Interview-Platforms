@@ -33,17 +33,17 @@ function initials(email = '') {
 const ROLE_LABELS = {
   student: { label: '🎓 Student', bg: '#FFD400' },
   company: { label: '🏢 Company', bg: '#C8E6FF' },
-  admin:   { label: '🔑 Admin',   bg: '#FF3864' },
+  admin: { label: '🔑 Admin', bg: '#FF3864' },
 }
 
 export default function Navbar({
   isAuthenticated = false,
-  user            = {},
-  onLogout        = () => {},
-  onNavigate      = () => {},
+  user = {},
+  onLogout = () => { },
+  onNavigate = () => { },
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [mobileOpen,   setMobileOpen]   = useState(false)
+  const [mobileOpen, setMobileOpen] = useState(false)
   const dropdownRef = useRef(null)
 
   // Close dropdown on outside click
@@ -64,29 +64,26 @@ export default function Navbar({
     return () => window.removeEventListener('resize', handler)
   }, [])
 
-  const role      = user.role?.toLowerCase() ?? 'student'
-  const roleInfo  = ROLE_LABELS[role] ?? ROLE_LABELS.student
+  const role = user.role?.toLowerCase() ?? 'student'
+  const roleInfo = ROLE_LABELS[role] ?? ROLE_LABELS.student
 
   const navLinks = isAuthenticated
     ? role === 'company'
       ? [
-          { label: 'Dashboard',   href: '/dashboard' },
-          { label: 'Post a Job',  href: '/post-job'  },
-          { label: 'Candidates',  href: '/candidates' },
-          { label: 'Practice',    href: '/practice'  },
-        ]
-      : [
-          { label: 'Dashboard',       href: '/dashboard'   },
-          { label: 'Mock Interview',  href: '/interview'   },
-          { label: 'Browse Jobs',     href: '/jobs'        },
-          { label: 'Practice',        href: '/practice'    },
-        ]
-    : [
-        { label: 'Features', href: '#features' },
-        { label: 'How it works', href: '#how' },
-        { label: 'Practice', href: '/practice' },
-        { label: 'Pricing', href: '#pricing' },
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Post a Job', href: '/post-job' },
+        { label: 'Candidates', href: '/candidates' },
       ]
+      : [
+        { label: 'Dashboard', href: '/dashboard' },
+        { label: 'Mock Interview', href: '/interview' },
+        { label: 'Browse Jobs', href: '/jobs' },
+      ]
+    : [
+      { label: 'Features', href: '#features' },
+      { label: 'How it works', href: '#how' },
+      { label: 'Pricing', href: '#pricing' },
+    ]
 
   const handleNav = (href) => {
     setMobileOpen(false)
@@ -252,7 +249,7 @@ export default function Navbar({
             </>
           ) : (
             <>
-              <a href="/login"    role="menuitem" onClick={(e) => { e.preventDefault(); handleNav('/login') }}>Log In</a>
+              <a href="/login" role="menuitem" onClick={(e) => { e.preventDefault(); handleNav('/login') }}>Log In</a>
               <a href="/register" role="menuitem" onClick={(e) => { e.preventDefault(); handleNav('/register') }}>Sign Up</a>
             </>
           )}

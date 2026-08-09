@@ -92,16 +92,16 @@ const Icon = {
 // ---- data (swap these for real data / API results) ----
 const NAV_MAIN = [
   { label: "Dashboard", icon: Icon.Grid, active: true, target: "dashboard" },
-  { label: "Practice", icon: Icon.Edit },
+  { label: "Practice", icon: Icon.Edit, target: "/practice" },
   { label: "Mock Interviews", icon: Icon.Calendar, target: "/interview" },
-  { label: "Performance", icon: Icon.Chart },
-  { label: "Resume", icon: Icon.File },
-  { label: "Companies", icon: Icon.Building },
+  { label: "Performance", icon: Icon.Chart, target: "/performance" },
+  { label: "Resume", icon: Icon.File, target: "/resume" },
+  { label: "Companies", icon: Icon.Building, target: "/companies" },
 ];
 
 const NAV_GENERAL = [
-  { label: "Settings", icon: Icon.Settings },
-  { label: "Support", icon: Icon.Support },
+  { label: "Settings", icon: Icon.Settings, target: "/settings" },
+  { label: "Support", icon: Icon.Support, target: "/support" },
 ];
 
 const STATS = [
@@ -163,8 +163,12 @@ function Sidebar({ onNavigate }) {
 
       <nav className="nav-group">
         <div className="nav-label">General</div>
-        {NAV_GENERAL.map(({ label, icon: ItemIcon }) => (
-          <button key={label} className="nav-item">
+        {NAV_GENERAL.map(({ label, icon: ItemIcon, target }) => (
+          <button
+            key={label}
+            className="nav-item"
+            onClick={() => target && onNavigate(target)}
+          >
             <ItemIcon />
             {label}
           </button>
