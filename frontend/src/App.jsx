@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Navbar from './components/Navbar'
+import Tripa from './components/Tripa/Tripa'
 import AuthPage from './pages/Auth/AuthPage'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Profile from './pages/Profile/Profile'
@@ -12,7 +13,24 @@ import Resume from './pages/Resume/Resume'
 import Companies from './pages/Companies/Companies'
 import Settings from './pages/Settings/Settings'
 import Support from './pages/Support/Support'
+import AdminPanel from './pages/Admin/AdminPanel'
 import authService from './services/authService'
+
+// ─── Theme hook ────────────────────────────────────────────────────────────────
+function useTheme() {
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('pp-theme') || 'light'
+  })
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('pp-theme', theme)
+  }, [theme])
+
+  const toggleTheme = () => setTheme((t) => (t === 'light' ? 'dark' : 'light'))
+
+  return [theme, toggleTheme]
+}
 
 // ─── Thin router helper ────────────────────────────────────────────────────────
 function useRoute() {
@@ -34,6 +52,7 @@ function useRoute() {
 
 export default function App() {
   const [route, navigate] = useRoute()
+  const [theme, toggleTheme] = useTheme()
 
   // ── Auth state ──────────────────────────────────────────────────────────────
   const [isAuthed, setIsAuthed] = useState(() => authService.isAuthenticated())
@@ -65,8 +84,23 @@ export default function App() {
 
   // ── Page rendering ──────────────────────────────────────────────────────────
   let page
+  const isAdmin = isAuthed && authService.isAdmin()
 
-  if (route === '/practice') {
+  // ── /admin route — strictly guarded ────────────────────────────────────────
+  if (route === '/admin') {
+    if (!isAuthed) {
+      // Not logged in → send to login
+      navigate('/login')
+      page = <AuthPage onLoginSuccess={syncAuth} />
+    } else if (!isAdmin) {
+      // Logged in but not the admin account → back to dashboard
+      navigate('/dashboard')
+      page = <Dashboard onNavigate={handleNavigate} onLogout={handleLogout} user={user} theme={theme} toggleTheme={toggleTheme} />
+    } else {
+      // Only test@test.com reaches here
+      page = <AdminPanel onNavigate={handleNavigate} />
+    }
+  } else if (route === '/practice') {
     page = <Practice />
   } else if (route === '/performance') {
     page = <Performance />
@@ -87,7 +121,7 @@ export default function App() {
       page = <MockInterview />
     } else {
       // authenticated default → Dashboard
-      page = <Dashboard onNavigate={handleNavigate} />
+      page = <Dashboard onNavigate={handleNavigate} onLogout={handleLogout} user={user} theme={theme} toggleTheme={toggleTheme} />
     }
   } else {
     if (route === '/login' || route === '/register') {
@@ -100,13 +134,17 @@ export default function App() {
 
   return (
     <>
-      <Navbar
-        isAuthenticated={isAuthed}
-        user={user}
-        onLogout={handleLogout}
-        onNavigate={handleNavigate}
-      />
+      {!isAuthed && route !== '/admin' && (
+        <Navbar
+          isAuthenticated={isAuthed}
+          user={user}
+          onLogout={handleLogout}
+          onNavigate={handleNavigate}
+        />
+      )}
       <main>{page}</main>
+      {/* Tripa AI chatbot — shown on all pages except /admin */}
+      {route !== '/admin' && <Tripa />}
     </>
   )
 }
