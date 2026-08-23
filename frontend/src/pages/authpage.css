@@ -1,4 +1,4 @@
-/* authpage.css — Modern Purple UI · Auth & Welcome page — v2 */
+/* authpage.css — Warm Palette · Auth & Welcome page */
 /* Design tokens come from src/global.css via main.jsx */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -9,8 +9,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(145deg, #ECE8FF 0%, #D8D0FF 40%, #ECE8FF 100%);
-  color: var(--ink);
+  background: var(--hero-gradient);
+  color: var(--text);
   font-family: 'Inter', sans-serif;
   padding: 2rem 1rem;
   position: relative;
@@ -25,7 +25,7 @@
   width: 600px;
   height: 600px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(124, 111, 245, 0.18) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(228, 161, 106, 0.22) 0%, transparent 70%);
   top: -200px;
   right: -180px;
   pointer-events: none;
@@ -38,7 +38,7 @@
   width: 450px;
   height: 450px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(91, 78, 232, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(201, 127, 74, 0.14) 0%, transparent 70%);
   bottom: -150px;
   left: -120px;
   pointer-events: none;
@@ -73,13 +73,13 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 summary:focus-visible {
-  outline: 2px solid var(--primary);
+  outline: 2px solid var(--accent);
   outline-offset: 3px;
   border-radius: 4px;
 }
 
 .welcome-card :focus-visible {
-  outline-color: var(--p-300);
+  outline-color: var(--accent-light);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -103,8 +103,8 @@ summary:focus-visible {
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow:
-    0 20px 60px rgba(91, 78, 232, 0.15),
-    0 0 0 1px rgba(91, 78, 232, 0.07);
+    0 20px 60px rgba(120, 90, 60, 0.14),
+    0 0 0 1px rgba(228, 161, 106, 0.10);
   animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   z-index: 1;
 }

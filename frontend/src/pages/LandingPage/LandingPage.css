@@ -16,7 +16,7 @@
 ══════════════════════════════════════════════════════════════════════════════ */
 .lp-hero {
   min-height: calc(100vh - var(--nav-height));
-  background: linear-gradient(145deg, #ECE8FF 0%, #D8D0FF 40%, #C4B5FD 70%, #ECE8FF 100%);
+  background: var(--hero-gradient);
   display: flex;
   align-items: center;
   padding: 5rem 1.5rem 6rem;
@@ -30,7 +30,7 @@
   position: absolute;
   width: 700px; height: 700px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(124, 111, 245, 0.2) 0%, transparent 65%);
+  background: radial-gradient(circle, rgba(228, 161, 106, 0.22) 0%, transparent 65%);
   top: -200px; right: -200px;
   pointer-events: none;
   animation: blobFloat 10s ease-in-out infinite;
@@ -41,7 +41,7 @@
   position: absolute;
   width: 500px; height: 500px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(91, 78, 232, 0.12) 0%, transparent 65%);
+  background: radial-gradient(circle, rgba(201, 127, 74, 0.14) 0%, transparent 65%);
   bottom: -150px; left: -150px;
   pointer-events: none;
   animation: blobFloat 12s ease-in-out infinite reverse;
