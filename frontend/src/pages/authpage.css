@@ -1,4 +1,4 @@
-/* authpage.css — Modern Purple UI · Auth & Welcome page — v2 */
+﻿/* authpage.css — Modern Purple UI · Auth & Welcome page — v2 */
 /* Design tokens come from src/global.css via main.jsx */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -38,7 +38,7 @@
   width: 450px;
   height: 450px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(91, 78, 232, 0.12) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(228,161,106,0.15) 0%, transparent 70%);
   bottom: -150px;
   left: -120px;
   pointer-events: none;
@@ -103,8 +103,8 @@ summary:focus-visible {
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow:
-    0 20px 60px rgba(91, 78, 232, 0.15),
-    0 0 0 1px rgba(91, 78, 232, 0.07);
+    0 20px 60px rgba(228,161,106,0.2),
+    0 0 0 1px rgba(228,161,106,0.10);
   animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   z-index: 1;
 }
@@ -187,7 +187,7 @@ summary:focus-visible {
 .form-toggle .active {
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 2px 14px rgba(91, 78, 232, 0.4);
+  box-shadow: 0 2px 14px rgba(228,161,106,0.4);
 }
 
 /* Form */
@@ -238,7 +238,7 @@ summary:focus-visible {
 }
 
 input {
-  border: 1.5px solid rgba(91, 78, 232, 0.2);
+  border: 1.5px solid rgba(228,161,106,0.25);
   outline: none;
   padding: 0.85rem 1rem;
   background: var(--p-50);
@@ -259,7 +259,7 @@ input::placeholder {
 input:focus {
   border-color: var(--primary);
   background: #fff;
-  box-shadow: 0 0 0 4px rgba(91, 78, 232, 0.12);
+  box-shadow: 0 0 0 4px rgba(228,161,106,0.15);
 }
 
 input[aria-invalid="true"] {
@@ -321,7 +321,7 @@ input[aria-invalid="true"] {
   letter-spacing: -0.01em;
   border-radius: var(--radius-sm);
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(91, 78, 232, 0.38);
+  box-shadow: 0 4px 18px rgba(228,161,106,0.4);
   transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.15s ease;
   display: flex;
   align-items: center;
@@ -331,12 +331,12 @@ input[aria-invalid="true"] {
 
 .submit-btn:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 28px rgba(91, 78, 232, 0.48);
+  box-shadow: 0 8px 28px rgba(228,161,106,0.5);
 }
 
 .submit-btn:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: 0 2px 10px rgba(91, 78, 232, 0.3);
+  box-shadow: 0 2px 10px rgba(228,161,106,0.3);
 }
 
 .submit-btn:disabled {

@@ -1,8 +1,8 @@
-/* ─── Courses.css — Modern Platform Learning UI ───────────────────────────── */
+﻿/* ─── Courses.css — Modern Platform Learning UI ───────────────────────────── */
 
 .courses-page {
   min-height: 100vh;
-  background: var(--bg);
+  background: radial-gradient(circle at 8% 12%, rgba(247,216,187,0.55) 0%, rgba(247,216,187,0) 42%), radial-gradient(circle at 92% 8%, rgba(228,161,106,0.20) 0%, rgba(228,161,106,0) 45%), linear-gradient(160deg, #FBEEE2 0%, #F8F6F4 38%, #F8F6F4 100%);
   font-family: 'Inter', sans-serif;
   color: var(--ink);
   padding: 2.5rem 1rem 5rem;
@@ -39,7 +39,7 @@
   border-radius: var(--radius);
   font-size: 0.85rem;
   font-weight: 600;
-  box-shadow: 0 8px 32px rgba(91, 78, 232, 0.35);
+  box-shadow: 0 8px 32px rgba(228,161,106,0.4);
   border: 1px solid rgba(196, 181, 253, 0.3);
   z-index: 999;
   animation: toastIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -52,8 +52,8 @@
 
 /* ─── Hero Banner ────────────────────────────────────────────────────────────── */
 .courses-hero {
-  background: linear-gradient(135deg, rgba(91, 78, 232, 0.08) 0%, rgba(147, 51, 234, 0.04) 100%);
-  border: 1px solid rgba(91, 78, 232, 0.15);
+  background: linear-gradient(135deg, rgba(228,161,106,0.12) 0%, rgba(147, 51, 234, 0.04) 100%);
+  border: 1px solid rgba(228,161,106,0.25);
   border-radius: var(--radius-lg);
   padding: 3rem 2.5rem;
   text-align: center;
@@ -117,17 +117,17 @@
   display: flex;
   align-items: center;
   background: var(--surface);
-  border: 1.5px solid rgba(91, 78, 232, 0.2);
+  border: 1.5px solid rgba(228,161,106,0.3);
   border-radius: var(--radius-full);
   padding: 0.4rem 1rem;
   margin-top: 0.75rem;
-  box-shadow: 0 4px 16px rgba(91, 78, 232, 0.08);
+  box-shadow: 0 4px 16px rgba(120,90,60,0.06);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .courses-search-bar:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 4px 20px rgba(91, 78, 232, 0.2);
+  box-shadow: 0 4px 20px rgba(228,161,106,0.25);
 }
 
 .courses-search-icon {
@@ -165,7 +165,7 @@
 .courses-tabs {
   display: flex;
   gap: 0.5rem;
-  border-bottom: 1px solid rgba(91, 78, 232, 0.1);
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.25rem;
 }
 
@@ -203,7 +203,7 @@
 .category-pill {
   flex-shrink: 0;
   background: var(--surface);
-  border: 1px solid rgba(91, 78, 232, 0.15);
+  border: 1px solid rgba(228,161,106,0.25);
   padding: 0.45rem 1rem;
   border-radius: var(--radius-full);
   font-family: inherit;
@@ -226,7 +226,7 @@
   background: var(--primary);
   color: #fff;
   border-color: var(--primary);
-  box-shadow: 0 4px 12px rgba(91, 78, 232, 0.25);
+  box-shadow: 0 4px 12px rgba(228,161,106,0.25);
 }
 
 /* Filter Controls */
@@ -249,7 +249,7 @@
 
 .level-select {
   background: var(--surface);
-  border: 1px solid rgba(91, 78, 232, 0.2);
+  border: 1px solid rgba(228,161,106,0.25);
   border-radius: var(--radius-sm);
   padding: 0.35rem 0.75rem;
   font-family: inherit;
@@ -281,7 +281,7 @@
 
 .course-card {
   background: var(--surface);
-  border: 1px solid rgba(91, 78, 232, 0.12);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   box-shadow: var(--shadow-card);
@@ -295,13 +295,13 @@
 
 .course-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(91, 78, 232, 0.15);
-  border-color: rgba(91, 78, 232, 0.3);
+  box-shadow: 0 16px 34px -12px rgba(60,40,20,0.14);
+  border-color: rgba(228,161,106,0.3);
 }
 
 .course-card--featured {
-  border-color: rgba(91, 78, 232, 0.3);
-  background: linear-gradient(180deg, var(--surface) 0%, rgba(91, 78, 232, 0.03) 100%);
+  border-color: rgba(228,161,106,0.3);
+  background: linear-gradient(180deg, var(--surface) 0%, rgba(247,216,187,0.08) 100%);
 }
 
 .course-card__header {
@@ -367,7 +367,7 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 0.5rem;
-  border-top: 1px dashed rgba(91, 78, 232, 0.12);
+  border-top: 1px dashed rgba(228,161,106,0.15);
   margin-top: auto;
 }
 
@@ -425,7 +425,7 @@
   text-align: center;
   padding: 4rem 2rem;
   background: var(--surface);
-  border: 1px dashed rgba(91, 78, 232, 0.2);
+  border: 1px dashed rgba(228,161,106,0.25);
   border-radius: var(--radius-lg);
   display: flex;
   flex-direction: column;
@@ -578,7 +578,7 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  background: var(--bg);
+  background: radial-gradient(circle at 8% 12%, rgba(247,216,187,0.55) 0%, rgba(247,216,187,0) 42%), radial-gradient(circle at 92% 8%, rgba(228,161,106,0.20) 0%, rgba(228,161,106,0) 45%), linear-gradient(160deg, #FBEEE2 0%, #F8F6F4 38%, #F8F6F4 100%);
   padding: 1.25rem;
   border-radius: var(--radius);
   height: fit-content;
@@ -592,7 +592,7 @@
   gap: 0.25rem;
 
   padding-bottom: 1rem;
-  border-bottom: 1px dashed rgba(91, 78, 232, 0.15);
+  border-bottom: 1px dashed rgba(228,161,106,0.2);
 }
 
 .modal-instructor-avatar {

@@ -1,4 +1,4 @@
-/* ─── Button.css — Modern Purple UI ──────────────────────────────────────── */
+/* ─── Button.css — Warm Amber UI ──────────────────────────────────────── */
 /* Design tokens come from src/global.css — no @import or :root here. */
 
 .btn {
@@ -45,25 +45,26 @@
 
 /* ─── Variants ──────────────────────────────────────────────────────────────── */
 
-/* Primary — gradient purple */
+/* Primary — dark button matching Dashboard CTA style */
 .btn--primary {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: var(--dark);
   color: #fff;
-  box-shadow: 0 4px 16px rgba(91, 78, 232, 0.35);
+  box-shadow: 0 4px 16px rgba(27,27,29,0.3);
 }
 .btn--primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(91, 78, 232, 0.48);
+  box-shadow: 0 8px 24px rgba(27,27,29,0.4);
+  background: #2d2d2f;
 }
 .btn--primary:active:not(:disabled) {
-  box-shadow: 0 2px 8px rgba(91, 78, 232, 0.3);
+  box-shadow: 0 2px 8px rgba(27,27,29,0.25);
 }
 
-/* Secondary — soft purple outline */
+/* Secondary — soft amber outline */
 .btn--secondary {
   background: var(--p-100);
-  color: var(--primary);
-  border: 1.5px solid rgba(91, 78, 232, 0.25);
+  color: #B4652E;
+  border: 1.5px solid rgba(228,161,106,0.35);
   box-shadow: none;
 }
 .btn--secondary:hover:not(:disabled) {
@@ -72,17 +73,17 @@
   transform: translateY(-1px);
 }
 
-/* Accent — soft lavender fill */
+/* Accent — amber fill */
 .btn--yellow {
-  background: var(--p-200);
-  color: var(--primary-dark);
-  box-shadow: none;
-  border: 1.5px solid rgba(91, 78, 232, 0.2);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(228,161,106,0.35);
+  border: none;
 }
 .btn--yellow:hover:not(:disabled) {
-  background: var(--p-300);
-  color: var(--primary-dark);
+  background: var(--primary-dark);
   transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(228,161,106,0.4);
 }
 
 /* Ghost — for dark backgrounds */

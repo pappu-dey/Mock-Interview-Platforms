@@ -1,8 +1,8 @@
-/* ─── Support.css ─────────────────────────────────────────────────────────────── */
+﻿/* ─── Support.css ─────────────────────────────────────────────────────────────── */
 
 .sup-page {
   min-height: 100vh;
-  background: var(--bg);
+  background: radial-gradient(circle at 8% 12%, rgba(247,216,187,0.55) 0%, rgba(247,216,187,0) 42%), radial-gradient(circle at 92% 8%, rgba(228,161,106,0.20) 0%, rgba(228,161,106,0) 45%), linear-gradient(160deg, #FBEEE2 0%, #F8F6F4 38%, #F8F6F4 100%);
   font-family: 'Inter', sans-serif;
   color: var(--ink);
   padding: 2.5rem 1rem 5rem;
@@ -31,8 +31,8 @@
 
 /* ── Hero ─────────────────────────────────────────────────────────────────────── */
 .sup-hero {
-  background: linear-gradient(135deg, rgba(91, 78, 232, 0.09) 0%, rgba(16, 185, 129, 0.05) 100%);
-  border: 1px solid rgba(91, 78, 232, 0.15);
+  background: linear-gradient(135deg, rgba(228,161,106,0.12) 0%, rgba(247,216,187,0.18) 100%);
+  border: 1px solid rgba(228,161,106,0.25);
   border-radius: var(--radius-lg);
   padding: 2.75rem;
   position: relative;
@@ -49,7 +49,7 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, var(--primary) 0%, #8B5CF6 50%, #10B981 100%);
+  background: linear-gradient(90deg, var(--primary) 0%, #C97F4A 50%, #F7D8BB 100%);
 }
 
 .sup-hero__content {
@@ -78,7 +78,7 @@
 }
 
 .sup-gradient {
-  background: linear-gradient(135deg, var(--primary) 0%, #10B981 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, #C97F4A 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -94,17 +94,17 @@
   align-items: center;
   gap: 0.65rem;
   background: var(--surface);
-  border: 2px solid rgba(91, 78, 232, 0.2);
+  border: 2px solid rgba(228,161,106,0.3);
   border-radius: var(--radius-lg);
   padding: 0.75rem 1.1rem;
   max-width: 620px;
-  box-shadow: 0 4px 20px rgba(91, 78, 232, 0.08);
+  box-shadow: 0 4px 20px rgba(228,161,106,0.12);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .sup-search-bar:focus-within {
   border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(91, 78, 232, 0.1);
+  box-shadow: 0 0 0 4px rgba(228,161,106,0.15);
 }
 
 .sup-search-icon {
@@ -156,7 +156,7 @@
   display: flex;
   gap: 0;
   background: var(--surface);
-  border: 1px solid rgba(91, 78, 232, 0.12);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   overflow: hidden;
   width: fit-content;
@@ -168,7 +168,7 @@
   align-items: center;
   gap: 0.2rem;
   padding: 1rem 1.75rem;
-  border-right: 1px solid rgba(91, 78, 232, 0.08);
+  border-right: 1px solid var(--border-color);
 }
 
 .sup-hero-stat:last-child {
@@ -198,7 +198,7 @@
 
 .sup-quick-card {
   background: var(--surface);
-  border: 1px solid rgba(91, 78, 232, 0.10);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1.5rem;
   box-shadow: var(--shadow-card);
@@ -211,7 +211,7 @@
 
 .sup-quick-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(91, 78, 232, 0.12);
+  box-shadow: 0 12px 32px rgba(228,161,106,0.15);
 }
 
 .sup-quick-icon {
@@ -294,7 +294,7 @@
   font-weight: 600;
   padding: 0.28rem 0.85rem;
   border-radius: var(--radius-full);
-  border: 1.5px solid rgba(91, 78, 232, 0.15);
+  border: 1.5px solid rgba(228,161,106,0.2);
   background: transparent;
   color: var(--ink-muted);
   cursor: pointer;
@@ -320,15 +320,15 @@
 
 .sup-faq-item {
   background: var(--surface);
-  border: 1px solid rgba(91, 78, 232, 0.08);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius);
   overflow: hidden;
   transition: border-color 0.2s ease;
 }
 
 .sup-faq-item.open {
-  border-color: rgba(91, 78, 232, 0.22);
-  box-shadow: 0 2px 12px rgba(91, 78, 232, 0.07);
+  border-color: rgba(228,161,106,0.4);
+  box-shadow: 0 2px 12px rgba(228,161,106,0.10);
 }
 
 .sup-faq-q {
@@ -373,7 +373,7 @@
   font-size: 0.86rem;
   color: var(--ink-muted);
   line-height: 1.7;
-  border-top: 1px solid rgba(91, 78, 232, 0.07);
+  border-top: 1px solid rgba(228,161,106,0.10);
   padding-top: 0.85rem;
   animation: faqIn 0.2s ease;
 }
@@ -443,7 +443,7 @@
 /* ── Shared Card ──────────────────────────────────────────────────────────────── */
 .sup-card {
   background: var(--surface);
-  border: 1px solid rgba(91, 78, 232, 0.10);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
   padding: 1.75rem;
   box-shadow: var(--shadow-card);
@@ -510,8 +510,8 @@
 }
 
 .sup-input {
-  background: var(--bg);
-  border: 1.5px solid rgba(91, 78, 232, 0.15);
+  background: radial-gradient(circle at 8% 12%, rgba(247,216,187,0.55) 0%, rgba(247,216,187,0) 42%), radial-gradient(circle at 92% 8%, rgba(228,161,106,0.20) 0%, rgba(228,161,106,0) 45%), linear-gradient(160deg, #FBEEE2 0%, #F8F6F4 38%, #F8F6F4 100%);
+  border: 1.5px solid rgba(228,161,106,0.2);
   border-radius: var(--radius);
   padding: 0.6rem 0.85rem;
   font-family: inherit;
@@ -525,7 +525,7 @@
 
 .sup-input:focus {
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(91, 78, 232, 0.10);
+  box-shadow: 0 0 0 3px rgba(228,161,106,0.15);
 }
 
 .sup-select {
@@ -579,18 +579,18 @@
 .sup-btn--primary {
   background: var(--primary);
   color: #fff;
-  box-shadow: 0 4px 14px rgba(91, 78, 232, 0.3);
+  box-shadow: 0 4px 14px rgba(228,161,106,0.3);
 }
 
 .sup-btn--primary:hover {
   background: var(--primary-dark);
-  box-shadow: 0 6px 20px rgba(91, 78, 232, 0.4);
+  box-shadow: 0 6px 20px rgba(228,161,106,0.4);
   transform: translateY(-1px);
 }
 
 .sup-btn--ghost {
   background: var(--p-50);
-  border-color: rgba(91, 78, 232, 0.18);
+  border-color: rgba(228,161,106,0.25);
   color: var(--ink);
 }
 
@@ -783,7 +783,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.5rem 0;
-  border-bottom: 1px solid rgba(91, 78, 232, 0.06);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .sup-status-row:last-child {
@@ -825,7 +825,7 @@
   align-items: flex-start;
   gap: 0.85rem;
   padding: 0.65rem 0;
-  border-bottom: 1px solid rgba(91, 78, 232, 0.06);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .sup-contact-row:last-child {
