@@ -17,6 +17,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import Button from './Button'
 import './Navbar.css'
+import logoImg from '../assets/prepilot.png'
 
 // ── helper: get initials from email ──────────────────────────────────────────
 function initials(email = '') {
@@ -103,8 +104,8 @@ export default function Navbar({
             onClick={(e) => { e.preventDefault(); handleNav('/') }}
             aria-label="PrepPilot home"
           >
-            <span className="navbar__logo-dot" aria-hidden="true" />
-            PrepPilot
+            <img src={logoImg} alt="" className="navbar__logo-img" aria-hidden="true" />
+            <span className="navbar__logo-wordmark">Prep<span>Pilot</span></span>
           </a>
 
           {/* ── Centre links ── */}

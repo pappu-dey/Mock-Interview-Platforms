@@ -67,6 +67,14 @@ function isAuthenticated() {
 }
 
 /**
+ * Returns true ONLY for the admin account (test@test.com).
+ * Used as the sole gate for the /admin route.
+ */
+function isAdmin() {
+  return localStorage.getItem(KEYS.EMAIL) === 'test@test.com'
+}
+
+/**
  * Returns the current user's stored credentials.
  * @returns {{ email: string|null, role: string|null, token: string|null }}
  */
@@ -145,6 +153,7 @@ const authService = {
   forgotPassword,
   logout,
   isAuthenticated,
+  isAdmin,
   getCurrentUser,
   clearSession,
 }

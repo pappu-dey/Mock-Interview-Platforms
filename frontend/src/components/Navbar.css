@@ -1,4 +1,4 @@
-/* Navbar.css — Modern Purple UI */
+/* Navbar.css — Warm Palette */
 /* Design tokens come from src/global.css via main.jsx — no @import or :root here. */
 
 /* ─── Navbar Shell ───────────────────────────────────────────────────────────── */
@@ -7,11 +7,16 @@
   top: 0;
   z-index: 100;
   height: var(--nav-height);
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(250, 248, 245, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+<<<<<<< HEAD
   border-bottom: 1px solid var(--border-color);
   box-shadow: 0 1px 24px rgba(120,90,60,0.06);
+=======
+  border-bottom: 1px solid rgba(228, 161, 106, 0.15);
+  box-shadow: 0 1px 24px rgba(120, 90, 60, 0.07);
+>>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
   display: flex;
   align-items: center;
   font-family: 'Inter', sans-serif;
@@ -28,23 +33,19 @@
   gap: 1rem;
 }
 
-/* ─── Logo / Brand ───────────────────────────────────────────────────────────── */
+/* ─── Logo / Brand ─────────────────────────────────────────────────────────── */
 .navbar__logo {
-  font-family: 'Inter', sans-serif;
-  font-size: 1.1rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--ink);
   text-decoration: none;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 8px;
   flex-shrink: 0;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.18s ease;
 }
 
-.navbar__logo:hover { opacity: 0.8; }
+.navbar__logo:hover { opacity: 0.85; }
 
+<<<<<<< HEAD
 .navbar__logo-dot {
   display: inline-block;
   width: 10px;
@@ -59,6 +60,28 @@
   0%  { transform: scale(1);    box-shadow: 0 0 0 0 rgba(228,161,106,0.4); background: var(--primary); }
   50% { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(228,161,106,0);  background: var(--primary-light); }
   100%{ transform: scale(1);    box-shadow: 0 0 0 0 rgba(228,161,106,0); background: var(--primary); }
+=======
+.navbar__logo-img {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  object-fit: cover;
+  object-position: 50% 20%;
+  display: block;
+  flex-shrink: 0;
+}
+
+.navbar__logo-wordmark {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+
+.navbar__logo-wordmark span {
+  color: var(--accent);
+>>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
 }
 
 /* ─── Centre Nav Links ───────────────────────────────────────────────────────── */
@@ -242,11 +265,15 @@
   top: var(--nav-height);
   left: 0;
   right: 0;
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--sidebar);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-color);
+<<<<<<< HEAD
   box-shadow: 0 8px 32px rgba(228,161,106,0.15);
+=======
+  box-shadow: 0 8px 32px rgba(120, 90, 60, 0.10);
+>>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
   padding: 1rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -263,11 +290,11 @@
 .navbar__mobile-menu a,
 .navbar__mobile-menu button {
   display: block;
-  padding: 0.7rem 0.75rem;
+  padding: 0.75rem;
   font-family: 'Inter', sans-serif;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  color: var(--ink);
+  color: var(--text);
   text-decoration: none;
   background: none;
   border: none;
@@ -275,14 +302,18 @@
   border-radius: var(--radius-sm);
   text-align: left;
   letter-spacing: -0.01em;
-  text-transform: none;
   transition: background 0.12s ease, color 0.12s ease;
+  min-height: 44px; /* accessible touch target */
 }
 
 .navbar__mobile-menu a:hover,
 .navbar__mobile-menu button:hover {
   background: var(--p-100);
+<<<<<<< HEAD
   color: #B4652E;
+=======
+  color: var(--accent);
+>>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
 }
 
 /* ─── Responsive breakpoints ─────────────────────────────────────────────────── */

@@ -1,6 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import "./Dashboard.css";
 import authService from "../../services/authService";
+import logoImg from "../../assets/prepilot.png";
+import Practice from "../Practice/Practice";
+import MockInterview from "../mockinterview/mockinterview";
+import Performance from "../Performance/Performance";
+import Resume from "../Resume/Resume";
+import Companies from "../Companies/Companies";
+import Settings from "../Settings/Settings";
+import Support from "../Support/Support";
+import Profile from "../Profile/Profile";
 
 // ── derive display name & initials from email ──────────────────────────────
 function nameFromEmail(email = '') {
@@ -87,21 +96,32 @@ const Icon = {
       <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
     </svg>
   ),
+  Person: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
+    </svg>
+  ),
+  LogOut: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  ),
 };
 
 // ---- data (swap these for real data / API results) ----
 const NAV_MAIN = [
-  { label: "Dashboard", icon: Icon.Grid, active: true, target: "dashboard" },
-  { label: "Practice", icon: Icon.Edit, target: "/practice" },
-  { label: "Mock Interviews", icon: Icon.Calendar, target: "/interview" },
-  { label: "Performance", icon: Icon.Chart, target: "/performance" },
-  { label: "Resume", icon: Icon.File, target: "/resume" },
-  { label: "Companies", icon: Icon.Building, target: "/companies" },
+  { label: "Dashboard", icon: Icon.Grid, section: "dashboard" },
+  { label: "Practice", icon: Icon.Edit, section: "practice" },
+  { label: "Mock Interviews", icon: Icon.Calendar, section: "interview" },
+  { label: "Performance", icon: Icon.Chart, section: "performance" },
+  { label: "Resume", icon: Icon.File, section: "resume" },
+  { label: "Companies", icon: Icon.Building, section: "companies" },
 ];
 
 const NAV_GENERAL = [
-  { label: "Settings", icon: Icon.Settings, target: "/settings" },
-  { label: "Support", icon: Icon.Support, target: "/support" },
+  { label: "Profile", icon: Icon.Person, section: "profile" },
+  { label: "Settings", icon: Icon.Settings, section: "settings" },
+  { label: "Support", icon: Icon.Support, section: "support" },
 ];
 
 const STATS = [
@@ -139,21 +159,27 @@ const RECOMMENDATIONS = [
   { label: "HR Mock Interview", value: 80 },
 ];
 
-function Sidebar({ onNavigate }) {
+function Sidebar({ activeSection, onSectionChange, theme, toggleTheme, isOpen, onClose }) {
+  const isDark = theme === 'dark'
+
+  function handleNav(section) {
+    onSectionChange(section);
+    onClose(); // close drawer on mobile after nav
+  }
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
       <div className="logo">
-        <div className="logo-mark">P</div>
-        <div className="logo-text">PrepPilot</div>
+        <img src={logoImg} alt="PrepPilot" className="logo-img" />
       </div>
 
       <nav className="nav-group">
         <div className="nav-label">Menu</div>
-        {NAV_MAIN.map(({ label, icon: ItemIcon, active, target }) => (
+        {NAV_MAIN.map(({ label, icon: ItemIcon, section }) => (
           <button
             key={label}
-            className={`nav-item${active ? " active" : ""}`}
-            onClick={() => target && onNavigate(target)}
+            className={`nav-item${activeSection === section ? " active" : ""}`}
+            onClick={() => handleNav(section)}
           >
             <ItemIcon />
             {label}
@@ -163,19 +189,40 @@ function Sidebar({ onNavigate }) {
 
       <nav className="nav-group">
         <div className="nav-label">General</div>
-        {NAV_GENERAL.map(({ label, icon: ItemIcon, target }) => (
+        {NAV_GENERAL.map(({ label, icon: ItemIcon, section }) => (
           <button
             key={label}
-            className="nav-item"
-            onClick={() => target && onNavigate(target)}
+            className={`nav-item${activeSection === section ? " active" : ""}`}
+            onClick={() => handleNav(section)}
           >
             <ItemIcon />
             {label}
           </button>
         ))}
+
+        {/* ── Theme Toggle ── */}
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={isDark ? 'Light mode' : 'Dark mode'}
+        >
+          {isDark ? (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="5" />
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            </svg>
+          ) : (
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" />
+            </svg>
+          )}
+          {isDark ? 'Light Mode' : 'Dark Mode'}
+          <div className="theme-toggle__track">
+            <div className="theme-toggle__thumb" />
+          </div>
+        </button>
       </nav>
-
-
     </aside>
   );
 }
@@ -350,24 +397,82 @@ function Recommendations() {
   );
 }
 
-export default function Dashboard({ onNavigate }) {
-  const user = authService.getCurrentUser()
+// ── inline content rendered for each section ──────────────────────────────
+function DashboardHome({ user, onNavigate }) {
+  return (
+    <>
+      <Header user={user} />
+      <StatsRow />
+      <AnalyticsCard />
+      <CompaniesTable />
+    </>
+  );
+}
+
+export default function Dashboard({ onNavigate, onLogout, user: userProp, theme, toggleTheme }) {
+  const user = userProp || authService.getCurrentUser()
+  const [activeSection, setActiveSection] = useState("dashboard")
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  // Render the right content based on active section
+  function renderContent() {
+    switch (activeSection) {
+      case "practice":    return <Practice />;
+      case "interview":   return <MockInterview />;
+      case "performance": return <Performance />;
+      case "resume":      return <Resume />;
+      case "companies":   return <Companies />;
+      case "settings":    return <Settings />;
+      case "support":     return <Support />;
+      case "profile":     return <Profile user={user} onLogout={onLogout} />;
+      case "dashboard":
+      default:
+        return <DashboardHome user={user} onNavigate={onNavigate} />;
+    }
+  }
+
+  const isDefaultDashboard = activeSection === "dashboard";
+
   return (
     <div className="dashboard-page">
       <div className="shell">
-        <Sidebar onNavigate={onNavigate} />
+        {/* Mobile overlay backdrop */}
+        {sidebarOpen && (
+          <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />
+        )}
+
+        <Sidebar
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          theme={theme}
+          toggleTheme={toggleTheme}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
 
         <main className="main">
-          <Header user={user} />
-          <StatsRow />
-          <AnalyticsCard />
-          <CompaniesTable />
+          {/* Mobile top bar with hamburger */}
+          <div className="mobile-topbar">
+            <button
+              className="hamburger"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+            >
+              <span /><span /><span />
+            </button>
+            <img src={logoImg} alt="PrepPilot" className="mobile-logo" />
+            <div className="hamburger-spacer" />
+          </div>
+
+          {renderContent()}
         </main>
 
-        <aside className="right">
-          <UpcomingInterviews onNavigate={onNavigate} />
-          <Recommendations />
-        </aside>
+        {isDefaultDashboard && (
+          <aside className="right">
+            <UpcomingInterviews onNavigate={onNavigate} />
+            <Recommendations />
+          </aside>
+        )}
       </div>
     </div>
   );
