@@ -1,14 +1,9 @@
 /*
-<<<<<<< HEAD
- * global.css — Single source of truth for all shared CSS design tokens.
- * Warm Amber / Cream UI Design System — matching Dashboard.
-=======
  * global.css — Unified Design System · PrepPilot
  * ─────────────────────────────────────────────────────────────────────────────
  * Single source of truth for all CSS design tokens.
  * Warm Beige / Orange palette matching the Dashboard aesthetic.
  * Dark mode activated via [data-theme="dark"] on <html>.
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
  *
  * Imported ONCE in main.jsx so every component can use these tokens.
  * Do NOT redefine :root variables in any component/page CSS file.
@@ -18,63 +13,6 @@
 
 /* ─── Light Mode Tokens (default) ───────────────────────────────────────────── */
 :root {
-<<<<<<< HEAD
-  /* Amber / Warm scale (replaces purple scale) */
-  --p-50:  #FFF8F1;
-  --p-100: #F7D8BB;
-  --p-200: #F0C49A;
-  --p-300: #E4A16A;
-  --p-400: #D98B4A;
-  --p-500: #C97F4A;
-  --p-600: #B4652E;
-  --p-700: #8C4D1E;
-  --p-800: #6A3614;
-  --p-900: #3A1A08;
-
-  /* Semantic surface tokens */
-  --bg:             #F8F6F4;           /* page background — warm cream */
-  --surface:        #FFFFFF;           /* card / panel background */
-  --sidebar:        #FAFAF8;           /* sidebar background */
-  --ink:            #111111;           /* primary text */
-  --ink-muted:      #777777;           /* secondary / muted text */
-
-  /* Brand colours — amber */
-  --primary:        #E4A16A;           /* main brand colour — warm amber */
-  --primary-light:  #F7D8BB;           /* lighter hover / gradient end */
-  --primary-dark:   #C97F4A;           /* darker active state */
-  --primary-glow:   rgba(228,161,106,0.25); /* focus ring / shadow glow */
-
-  /* Dark accent */
-  --dark:           #1B1B1D;           /* dark card / CTA background */
-
-  /* Legacy names — remapped to amber palette for backward compat */
-  --mono-08:  #111111;
-  --mono-18:  #2A2A2A;
-  --mono-28:  #3A3A3A;
-  --mono-38:  #555555;
-  --mono-48:  #777777;
-  --mono-58:  #999999;
-  --mono-68:  #BBBBBB;
-  --mono-78:  #DDDDDD;
-  --mono-88:  #EEEEEE;
-  --mono-98:  #F8F6F4;
-
-  --yellow:         #E4A16A;
-  --pink:           #F7D8BB;
-  --blue:           #E4A16A;
-  --accent-hover:   #C97F4A;
-  --accent-dark-bg: #1B1B1D;
-
-  /* Functional signal colours */
-  --green:    #4CAF50;
-  --success:  #4CAF50;
-  --red:      #EF4444;
-
-  /* Border & Shadow */
-  --border:         1.5px;
-  --border-color:   #ECECEC;
-  --shadow-offset:  0px;
-=======
   /* ── Core palette ── */
   --accent:        #E4A16A;
   --accent-light:  #F7D8BB;
@@ -106,6 +44,8 @@
   --danger:        #E05252;
   --warning:       #F59E0B;
   --info:          #3B9EDB;
+  --red:           #EF4444;
+  --green:         #4CAF50;
 
   /* ── Radius ── */
   --radius-sm:     8px;
@@ -116,33 +56,48 @@
 
   /* ── Layout ── */
   --nav-height:    64px;
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
 
-  /* ── Legacy purple aliases (kept for backward compat with some pages) ── */
+  /* ── Amber scale (p-* for backward compat) ── */
+  --p-50:          #FFF8F1;
+  --p-100:         rgba(228, 161, 106, 0.12);
+  --p-200:         rgba(228, 161, 106, 0.22);
+  --p-300:         #E4A16A;
+  --p-400:         #D98B4A;
+  --p-500:         #C97F4A;
+  --p-600:         #B4652E;
+  --p-700:         #8C4D1E;
+  --p-800:         #6A3614;
+  --p-900:         #3A1A08;
+
+  /* ── Legacy aliases (backward compat) ── */
   --primary:       var(--accent);
   --primary-light: var(--accent-light);
   --primary-dark:  var(--accent-dark);
   --primary-glow:  var(--accent-glow);
   --ink:           var(--text);
   --ink-muted:     var(--text-2);
-  --p-50:          var(--accent-light);
-  --p-100:         rgba(228, 161, 106, 0.12);
-  --p-200:         rgba(228, 161, 106, 0.22);
+  --mono-08:       #111111;
+  --mono-18:       #2A2A2A;
+  --mono-28:       #3A3A3A;
+  --mono-38:       #555555;
+  --mono-48:       #777777;
+  --mono-58:       #999999;
+  --mono-68:       #BBBBBB;
+  --mono-78:       #DDDDDD;
+  --mono-88:       #EEEEEE;
+  --mono-98:       #F8F6F4;
+  --yellow:        var(--accent);
+  --pink:          var(--accent-light);
+  --blue:          var(--accent);
+  --accent-hover:  var(--accent-dark);
+  --accent-dark-bg: #1B1B1D;
 
-<<<<<<< HEAD
-  /* Shadow scale — warm amber tones */
-  --shadow-sm:   0 2px 8px rgba(120,90,60,0.06);
-  --shadow:      0 4px 24px rgba(120,90,60,0.10);
-  --shadow-lg:   0 8px 40px rgba(120,90,60,0.16);
-  --shadow-card: 0 10px 30px -12px rgba(60,40,20,0.08);
-=======
-  /* Hero gradient */
+  /* ── Hero gradient ── */
   --hero-gradient: radial-gradient(circle at 8% 12%, rgba(247,216,187,0.55) 0%, rgba(247,216,187,0) 42%),
                    radial-gradient(circle at 92% 8%,  rgba(228,161,106,0.20) 0%, rgba(228,161,106,0) 45%),
                    radial-gradient(circle at 85% 90%, rgba(247,216,187,0.45) 0%, rgba(247,216,187,0) 45%),
                    linear-gradient(160deg, #FBEEE2 0%, #F8F6F4 38%, #F8F6F4 100%);
 }
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
 
 /* ─── Dark Mode Tokens ───────────────────────────────────────────────────────── */
 [data-theme="dark"] {

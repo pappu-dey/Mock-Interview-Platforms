@@ -1605,3 +1605,51 @@
   .cm-toolbar { flex-direction: column; align-items: flex-start; }
   .cm-toolbar__right { width: 100%; justify-content: space-between; }
 }
+
+/* ─── Topbar Add Question Button ────────────────────────────────────────── */
+.admin-topbar__add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 15px;
+  background: var(--ad-accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+  box-shadow: 0 2px 8px rgba(228, 161, 106, 0.35);
+  transition: all 0.2s ease;
+}
+.admin-topbar__add-btn:hover {
+  background: #d48f55;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(228, 161, 106, 0.45);
+}
+.admin-topbar__add-btn:active {
+  transform: translateY(0);
+}
+
+/* ─── Questions Bank UI Elements ────────────────────────────────────────── */
+.cm-q-id-chip {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--ad-text-3);
+  background: var(--ad-glass);
+  border: 1px solid var(--ad-border);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-family: monospace;
+}
+
+.cm-action-btn.view {
+  background: rgba(59, 158, 219, 0.1);
+  color: #3b9edb;
+  border: 1px solid rgba(59, 158, 219, 0.25);
+}
+.cm-action-btn.view:hover {
+  background: rgba(59, 158, 219, 0.2);
+}
+

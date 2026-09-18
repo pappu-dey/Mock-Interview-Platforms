@@ -338,7 +338,51 @@ export function CompaniesSection({ showToast }) {
   const [errors, setErrors]   = useState({})
   const [delItem, setDelItem] = useState(null)
 
-  useEffect(() => adminStore.subscribe('companies', () => setItems(adminStore.get('companies'))), [])
+  const fetchCompanies = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/api/companies')
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data)) {
+          const mapped = data.map(c => ({
+            id: c.companyId,
+            companyId: c.companyId,
+            name: c.companyName,
+            fullName: c.companyName,
+            industry: 'IT & Software',
+            logo: c.companyLogo || c.companyName?.slice(0, 2).toUpperCase() || 'CO',
+            color: '#E4A16A',
+            hq: c.headquarters || '',
+            employees: c.employees || '',
+            website: c.companyWebsite || '',
+            salaryRange: (c.jobRoles && c.jobRoles[0]?.salary) || '₹5.0L – ₹12.0L',
+            difficulty: c.difficulty || 'Medium',
+            status: 'saved',
+            readiness: 70,
+            rating: c.rating || 4,
+            hired: 'Direct Hires',
+            openRoles: c.jobRoles ? c.jobRoles.filter(r => r.isOpen !== false).length : 0,
+            roles: c.jobRoles ? c.jobRoles.map(r => r.roleName) : [],
+            topics: c.jobRoles && c.jobRoles[0]?.technicalTopics ? c.jobRoles[0].technicalTopics.split(',').map(t => t.trim()) : [],
+            tip: c.insiderTips || '',
+            rounds: c.jobRoles && c.jobRoles[0]?.hiringProcesses
+              ? c.jobRoles[0].hiringProcesses.map((hp) => ({ id: uid(), name: hp.roundName, type: 'technical', desc: hp.description }))
+              : [{ id: uid(), name: 'Technical Assessment', type: 'technical', desc: 'Coding and fundamentals' }],
+            jobRoles: c.jobRoles || []
+          }))
+          setItems(mapped)
+          adminStore.set('companies', mapped)
+        }
+      }
+    } catch (err) {
+      console.log('Backend not connected, using adminStore:', err)
+    }
+  }
+
+  useEffect(() => {
+    fetchCompanies()
+    return adminStore.subscribe('companies', () => setItems(adminStore.get('companies')))
+  }, [])
 
   const filtered = items.filter(c =>
     c.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -352,8 +396,19 @@ export function CompaniesSection({ showToast }) {
     setDrawer('add')
   }
   function openEdit(item) {
-    setForm({ ...COMPANY_DEFAULTS, ...item, rounds: item.rounds?.length ? item.rounds.map(r => ({ ...r, id: r.id || uid() })) : [{ id: uid(), name: '', type: 'aptitude', desc: '' }] })
-    setEditId(item.id)
+    setForm({
+      ...COMPANY_DEFAULTS,
+      ...item,
+      name: item.name || item.companyName || '',
+      fullName: item.fullName || item.companyName || '',
+      hq: item.hq || item.headquarters || '',
+      website: item.website || item.companyWebsite || '',
+      logo: item.logo || item.companyLogo || '',
+      tip: item.tip || item.insiderTips || '',
+      industry: item.industry || 'IT Services',
+      rounds: item.rounds?.length ? item.rounds.map(r => ({ ...r, id: r.id || uid() })) : [{ id: uid(), name: '', type: 'aptitude', desc: '' }]
+    })
+    setEditId(item.companyId || item.id)
     setErrors({})
     setDrawer('edit')
   }
@@ -361,30 +416,97 @@ export function CompaniesSection({ showToast }) {
   function validate() {
     const e = {}
     if (!form.name.trim()) e.name = 'Company name is required'
-    if (!form.industry.trim()) e.industry = 'Industry is required'
     setErrors(e)
     return Object.keys(e).length === 0
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!validate()) return
-    const payload = { ...form, logo: form.logo || form.name.slice(0, 2).toUpperCase() }
-    if (drawer === 'add') {
-      adminStore.add('companies', { ...payload, id: form.name.toLowerCase().replace(/\s+/g, '-') + '-' + uid() })
-      showToast('Company added ✓')
-    } else {
-      adminStore.update('companies', editId, payload)
-      showToast('Company updated ✓')
+
+    const payload = {
+      companyId: drawer === 'edit' && editId ? Number(editId) : null,
+      companyName: form.name,
+      companyWebsite: form.website,
+      companyLogo: form.logo || form.name.slice(0, 2).toUpperCase(),
+      headquarters: form.hq,
+      employees: form.employees,
+      rating: Number(form.rating) || 4.0,
+      difficulty: form.difficulty,
+      insiderTips: form.tip,
+      jobRoles: (form.roles && form.roles.length > 0 ? form.roles : ['Software Engineer']).map((rName, rIdx) => ({
+        roleName: typeof rName === 'string' ? rName : (rName.roleName || 'Software Engineer'),
+        location: form.hq || 'Pan India',
+        salary: form.salaryRange || '₹5L - ₹10L',
+        experience: '0-2 Years',
+        eligibility: 'B.Tech/BE/BCA/MCA (Min 60%)',
+        technicalTopics: Array.isArray(form.topics) ? form.topics.join(', ') : (form.topics || 'DSA, SQL'),
+        description: form.tip || 'Role description',
+        isOpen: true,
+        hiringProcesses: (form.rounds || []).map((rnd, idx) => ({
+          roundNumber: idx + 1,
+          roundName: rnd.name || `Round ${idx + 1}`,
+          description: rnd.desc || ''
+        }))
+      }))
     }
+
+    try {
+      const url = drawer === 'add'
+        ? 'http://localhost:8080/api/companies'
+        : `http://localhost:8080/api/companies/${editId}`
+
+      const method = drawer === 'add' ? 'POST' : 'PUT'
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      if (res.ok) {
+        showToast(drawer === 'add' ? 'Company saved to database ✓' : 'Company updated in database ✓')
+        fetchCompanies()
+      } else {
+        const localPayload = { ...form, logo: form.logo || form.name.slice(0, 2).toUpperCase() }
+        if (drawer === 'add') {
+          adminStore.add('companies', { ...localPayload, id: form.name.toLowerCase().replace(/\s+/g, '-') + '-' + uid() })
+          showToast('Company added locally ✓')
+        } else {
+          adminStore.update('companies', editId, localPayload)
+          showToast('Company updated locally ✓')
+        }
+      }
+    } catch (e) {
+      console.error('Error saving company:', e)
+      const localPayload = { ...form, logo: form.logo || form.name.slice(0, 2).toUpperCase() }
+      if (drawer === 'add') {
+        adminStore.add('companies', { ...localPayload, id: form.name.toLowerCase().replace(/\s+/g, '-') + '-' + uid() })
+        showToast('Company added locally ✓')
+      } else {
+        adminStore.update('companies', editId, localPayload)
+        showToast('Company updated locally ✓')
+      }
+    }
+
     setDrawer(null)
   }
 
   function handleDelete(item) {
     setDelItem(item)
   }
-  function confirmDelete() {
-    adminStore.remove('companies', delItem.id)
-    showToast('Company deleted')
+
+  async function confirmDelete() {
+    if (delItem) {
+      const targetId = delItem.companyId || delItem.id
+      try {
+        await fetch(`http://localhost:8080/api/companies/${targetId}`, { method: 'DELETE' })
+        showToast('Company deleted from database')
+        fetchCompanies()
+      } catch (err) {
+        adminStore.remove('companies', delItem.id)
+        showToast('Company deleted')
+      }
+    }
     setDelItem(null)
   }
 
@@ -922,5 +1044,707 @@ export function SqlQsSection({ showToast }) {
       defaultCategory="Joins"
       showToast={showToast}
     />
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  4. QUESTIONS BANK SECTION (Direct mapping to MySQL questions table schema)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const QUESTION_DEFAULTS = {
+  question: '',
+  option_a: '',
+  option_b: '',
+  option_c: '',
+  option_d: '',
+  answer: '',
+  category: 'Quantitative Aptitude',
+  sub_category: '',
+  question_type: 'MCQ',
+  difficulty: 'Medium',
+  explanation: '',
+  company_tag: '',
+}
+
+const CATEGORY_OPTIONS = [
+  'Quantitative Aptitude',
+  'Logical Reasoning',
+  'Verbal Ability',
+  'Technical',
+  'Core Java',
+  'SQL Database',
+  'System Design',
+  'HR & Behavioral',
+]
+
+const TYPE_OPTIONS = [
+  'MCQ',
+  'Single Choice',
+  'Multiple Choice',
+  'True/False',
+  'Coding',
+  'Subjective',
+]
+
+function QuestionForm({ form, setForm, errors }) {
+  function setField(key, val) { setForm(f => ({ ...f, [key]: val })) }
+
+  function pickOptionAsAnswer(letter, optValue) {
+    setField('answer', optValue || letter)
+  }
+
+  return (
+    <>
+      <div className="cm-divider">Question Info</div>
+      <div className="cm-field">
+        <label className="cm-label">Question Text <span>*</span></label>
+        <textarea
+          className={`cm-textarea ${errors.question ? 'error' : ''}`}
+          rows={3}
+          value={form.question}
+          onChange={e => setField('question', e.target.value)}
+          placeholder="Enter the complete question or problem statement…"
+        />
+        {errors.question && <span className="cm-field-error">{errors.question}</span>}
+      </div>
+
+      <div className="cm-field-row-3">
+        <div className="cm-field">
+          <label className="cm-label">Question Type <span>*</span></label>
+          <select className="cm-select" value={form.question_type} onChange={e => setField('question_type', e.target.value)}>
+            {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div className="cm-field">
+          <label className="cm-label">Category <span>*</span></label>
+          <select className="cm-select" value={form.category} onChange={e => setField('category', e.target.value)}>
+            {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+        <div className="cm-field">
+          <label className="cm-label">Sub-Category</label>
+          <input
+            className="cm-input"
+            value={form.sub_category}
+            onChange={e => setField('sub_category', e.target.value)}
+            placeholder="e.g. Speed & Distance, OOP, Joins"
+          />
+        </div>
+      </div>
+
+      <div className="cm-field-row">
+        <div className="cm-field">
+          <label className="cm-label">Difficulty</label>
+          <select className="cm-select" value={form.difficulty} onChange={e => setField('difficulty', e.target.value)}>
+            {['Easy', 'Medium', 'Hard'].map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+        <div className="cm-field">
+          <label className="cm-label">Company Tags</label>
+          <input
+            className="cm-input"
+            value={form.company_tag}
+            onChange={e => setField('company_tag', e.target.value)}
+            placeholder="e.g. TCS, Infosys, Wipro, Google"
+          />
+        </div>
+      </div>
+
+      {/* Options A, B, C, D */}
+      <div className="cm-divider">Options (A, B, C, D)</div>
+      <div className="cm-field-hint" style={{ marginBottom: 10, fontSize: 12 }}>
+        💡 Click the letter badge <strong>(A, B, C, D)</strong> to quickly select that option as the correct answer.
+      </div>
+
+      <div className="cm-q-options-stack">
+        {[
+          { key: 'option_a', letter: 'A', val: form.option_a },
+          { key: 'option_b', letter: 'B', val: form.option_b },
+          { key: 'option_c', letter: 'C', val: form.option_c },
+          { key: 'option_d', letter: 'D', val: form.option_d },
+        ].map(({ key, letter, val }) => {
+          const isSelected = form.answer && (
+            form.answer === val ||
+            form.answer.trim().toLowerCase() === letter.toLowerCase() ||
+            form.answer.toLowerCase().startsWith(letter.toLowerCase() + ':') ||
+            form.answer.toLowerCase().startsWith(letter.toLowerCase() + ' -')
+          );
+          return (
+            <div key={key} className="cm-q-opt-input-row" style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+              <button
+                type="button"
+                className={`cm-q-opt-btn ${isSelected ? 'active-ans' : ''}`}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 8,
+                  border: isSelected ? '2px solid var(--ad-success, #22c55e)' : '1px solid var(--ad-border, #cbd5e1)',
+                  background: isSelected ? 'rgba(34, 197, 94, 0.15)' : 'var(--ad-glass, #f8fafc)',
+                  color: isSelected ? 'var(--ad-success, #22c55e)' : 'var(--ad-text, #334155)',
+                  fontWeight: 800,
+                  fontSize: 13,
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  transition: 'all 0.15s ease',
+                }}
+                title={`Click to set Option ${letter} as answer`}
+                onClick={() => pickOptionAsAnswer(letter, val)}
+              >
+                {letter} {isSelected && '✓'}
+              </button>
+              <input
+                className="cm-input"
+                style={{ flex: 1 }}
+                value={val || ''}
+                onChange={e => setField(key, e.target.value)}
+                placeholder={`Option ${letter} text…`}
+              />
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Answer & Explanation */}
+      <div className="cm-divider">Answer & Explanation</div>
+      <div className="cm-field">
+        <label className="cm-label">Correct Answer <span>*</span></label>
+        <textarea
+          className={`cm-textarea ${errors.answer ? 'error' : ''}`}
+          rows={2}
+          value={form.answer}
+          onChange={e => setField('answer', e.target.value)}
+          placeholder="e.g. 150 metres or B, or formula result…"
+        />
+        {errors.answer && <span className="cm-field-error">{errors.answer}</span>}
+      </div>
+
+      <div className="cm-field">
+        <label className="cm-label">Explanation / Solution</label>
+        <textarea
+          className="cm-textarea"
+          rows={3}
+          value={form.explanation}
+          onChange={e => setField('explanation', e.target.value)}
+          placeholder="Detailed step-by-step reasoning or mathematical proof explaining why this answer is correct…"
+        />
+      </div>
+    </>
+  )
+}
+
+/** Modal to inspect full question details */
+function QuestionDetailModal({ item, onClose, onEdit }) {
+  if (!item) return null
+  return (
+    <div className="cm-drawer-overlay" onClick={onClose}>
+      <div className="cm-confirm-modal" style={{ maxWidth: 650, width: '92vw' }}>
+        <div className="cm-confirm-modal__box" style={{ textAlign: 'left' }} onClick={e => e.stopPropagation()}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span className="cm-q-id-chip">#{item.id}</span>
+              <span className={`cm-badge ${badgeClass(item.difficulty)}`}>{item.difficulty || 'Medium'}</span>
+              <span className="cm-badge technical">{item.question_type || item.questionType || 'MCQ'}</span>
+            </div>
+            <button className="cm-drawer__close" onClick={onClose}>✕</button>
+          </div>
+
+          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 8px', color: 'var(--ad-text)' }}>
+            {item.question}
+          </h3>
+
+          <div style={{ fontSize: 12, color: 'var(--ad-text-2)', marginBottom: 16 }}>
+            <span><strong>Category:</strong> {item.category}</span>
+            {item.sub_category && <span> • <strong>Sub-category:</strong> {item.sub_category}</span>}
+            {item.company_tag && <span> • <strong>Tags:</strong> {item.company_tag}</span>}
+          </div>
+
+          {/* Options Display */}
+          {(item.option_a || item.optionA || item.option_b || item.optionB) && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
+              {[
+                { letter: 'A', text: item.option_a || item.optionA },
+                { letter: 'B', text: item.option_b || item.optionB },
+                { letter: 'C', text: item.option_c || item.optionC },
+                { letter: 'D', text: item.option_d || item.optionD },
+              ].map(({ letter, text }) => {
+                if (!text) return null
+                const isAns = item.answer && (
+                  item.answer === text ||
+                  item.answer.trim().toLowerCase() === letter.toLowerCase() ||
+                  item.answer.toLowerCase().startsWith(letter.toLowerCase() + ':') ||
+                  item.answer.toLowerCase().startsWith(letter.toLowerCase() + ' -')
+                )
+                return (
+                  <div
+                    key={letter}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 12px',
+                      borderRadius: 8,
+                      background: isAns ? 'rgba(34, 197, 94, 0.12)' : 'var(--ad-glass)',
+                      border: isAns ? '1px solid rgba(34, 197, 94, 0.4)' : '1px solid var(--ad-border)',
+                      fontSize: 13,
+                    }}
+                  >
+                    <span style={{
+                      fontWeight: 800,
+                      color: isAns ? '#16a34a' : 'var(--ad-text)',
+                      width: 22,
+                    }}>
+                      {letter}.
+                    </span>
+                    <span style={{ flex: 1, color: isAns ? '#15803d' : 'var(--ad-text)', fontWeight: isAns ? 600 : 400 }}>
+                      {text}
+                    </span>
+                    {isAns && <span style={{ color: '#16a34a', fontWeight: 800, fontSize: 12 }}>✓ Correct Answer</span>}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Answer Key */}
+          <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(228, 161, 106, 0.1)', border: '1px solid rgba(228, 161, 106, 0.3)', marginBottom: 12 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ad-accent)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+              Answer
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ad-text)' }}>
+              {item.answer}
+            </div>
+          </div>
+
+          {/* Explanation */}
+          {item.explanation && (
+            <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--ad-glass)', border: '1px solid var(--ad-border)', marginBottom: 16 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ad-text-2)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 4 }}>
+                Explanation
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ad-text-2)', lineHeight: 1.5 }}>
+                {item.explanation}
+              </div>
+            </div>
+          )}
+
+          {/* Timestamps */}
+          {(item.created_at || item.createdAt) && (
+            <div style={{ fontSize: 11, color: 'var(--ad-text-3)', marginBottom: 16 }}>
+              Created: {new Date(item.created_at || item.createdAt).toLocaleString()}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button className="cm-btn-cancel" onClick={onClose}>Close</button>
+            <button className="cm-btn-save" onClick={() => { onClose(); onEdit(item); }}>✏️ Edit Question</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export function QuestionsBankSection({ showToast, initialOpenAdd = false, onResetInitialOpenAdd }) {
+  const [items, setItems]               = useState(() => adminStore.get('allQuestions'))
+  const [search, setSearch]             = useState('')
+  const [filterCat, setFilterCat]       = useState('All')
+  const [filterDiff, setFilterDiff]     = useState('All')
+  const [filterType, setFilterType]     = useState('All')
+  const [drawer, setDrawer]             = useState(initialOpenAdd ? 'add' : null)
+  const [form, setForm]                 = useState(QUESTION_DEFAULTS)
+  const [editId, setEditId]             = useState(null)
+  const [errors, setErrors]             = useState({})
+  const [delItem, setDelItem]           = useState(null)
+  const [detailItem, setDetailItem]     = useState(null)
+  const [isSyncing, setIsSyncing]       = useState(false)
+
+  // Sync if opened via topbar "+ Add Question"
+  useEffect(() => {
+    if (initialOpenAdd) {
+      setForm(QUESTION_DEFAULTS)
+      setEditId(null)
+      setErrors({})
+      setDrawer('add')
+      if (onResetInitialOpenAdd) onResetInitialOpenAdd()
+    }
+  }, [initialOpenAdd, onResetInitialOpenAdd])
+
+  const fetchQuestions = useCallback(async () => {
+    setIsSyncing(true)
+    try {
+      const res = await fetch('http://localhost:8080/api/questions')
+      if (res.ok) {
+        const data = await res.json()
+        if (Array.isArray(data)) {
+          const mapped = data.map(q => ({
+            id: q.id,
+            question: q.question,
+            option_a: q.option_a || q.optionA || '',
+            option_b: q.option_b || q.optionB || '',
+            option_c: q.option_c || q.optionC || '',
+            option_d: q.option_d || q.optionD || '',
+            answer: q.answer || '',
+            category: q.category || 'General',
+            sub_category: q.sub_category || q.subCategory || '',
+            question_type: q.question_type || q.questionType || 'MCQ',
+            difficulty: q.difficulty || 'Medium',
+            explanation: q.explanation || '',
+            company_tag: q.company_tag || q.companyTag || '',
+            created_at: q.created_at || q.createdAt,
+            updated_at: q.updated_at || q.updatedAt,
+          }))
+          setItems(mapped)
+          adminStore.setAll('allQuestions', mapped)
+        }
+      }
+    } catch (err) {
+      console.log('Backend not connected or error, using adminStore:', err)
+    } finally {
+      setIsSyncing(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchQuestions()
+    return adminStore.subscribe('allQuestions', () => setItems(adminStore.get('allQuestions')))
+  }, [fetchQuestions])
+
+  const filtered = items.filter(q => {
+    const s = search.toLowerCase()
+    const matchSearch = (q.question || '').toLowerCase().includes(s) ||
+                        (q.explanation || '').toLowerCase().includes(s) ||
+                        (q.company_tag || '').toLowerCase().includes(s) ||
+                        (q.sub_category || '').toLowerCase().includes(s) ||
+                        (q.answer || '').toLowerCase().includes(s)
+    const matchCat  = filterCat === 'All'  || q.category === filterCat
+    const matchDiff = filterDiff === 'All' || (q.difficulty || '').toLowerCase() === filterDiff.toLowerCase()
+    const matchType = filterType === 'All' || (q.question_type || '').toLowerCase() === filterType.toLowerCase()
+    return matchSearch && matchCat && matchDiff && matchType
+  })
+
+  function openAdd() {
+    setForm(QUESTION_DEFAULTS)
+    setEditId(null)
+    setErrors({})
+    setDrawer('add')
+  }
+
+  function openEdit(item) {
+    setForm({
+      question: item.question || '',
+      option_a: item.option_a || item.optionA || '',
+      option_b: item.option_b || item.optionB || '',
+      option_c: item.option_c || item.optionC || '',
+      option_d: item.option_d || item.optionD || '',
+      answer: item.answer || '',
+      category: item.category || 'Quantitative Aptitude',
+      sub_category: item.sub_category || item.subCategory || '',
+      question_type: item.question_type || item.questionType || 'MCQ',
+      difficulty: item.difficulty || 'Medium',
+      explanation: item.explanation || '',
+      company_tag: item.company_tag || item.companyTag || '',
+    })
+    setEditId(item.id)
+    setErrors({})
+    setDrawer('edit')
+  }
+
+  function validate() {
+    const e = {}
+    if (!form.question.trim()) e.question = 'Question text is required'
+    if (!form.answer.trim()) e.answer = 'Correct answer is required'
+    setErrors(e)
+    return Object.keys(e).length === 0
+  }
+
+  async function handleSave() {
+    if (!validate()) return
+
+    const payload = {
+      id: drawer === 'edit' && editId ? editId : null,
+      question: form.question,
+      option_a: form.option_a,
+      option_b: form.option_b,
+      option_c: form.option_c,
+      option_d: form.option_d,
+      answer: form.answer,
+      category: form.category,
+      sub_category: form.sub_category,
+      question_type: form.question_type,
+      difficulty: form.difficulty,
+      explanation: form.explanation,
+      company_tag: form.company_tag,
+    }
+
+    try {
+      const url = drawer === 'add'
+        ? 'http://localhost:8080/api/questions'
+        : `http://localhost:8080/api/questions/${editId}`
+
+      const method = drawer === 'add' ? 'POST' : 'PUT'
+
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+
+      if (res.ok) {
+        showToast(drawer === 'add' ? 'Question saved to database ✓' : 'Question updated in database ✓')
+        fetchQuestions()
+      } else {
+        // Fallback to local store
+        if (drawer === 'add') {
+          adminStore.add('allQuestions', { ...payload, id: Date.now(), created_at: new Date().toISOString() })
+          showToast('Question added locally ✓')
+        } else {
+          adminStore.update('allQuestions', editId, payload)
+          showToast('Question updated locally ✓')
+        }
+      }
+    } catch (e) {
+      console.warn('Backend unavailable, saving question to local store:', e)
+      if (drawer === 'add') {
+        adminStore.add('allQuestions', { ...payload, id: Date.now(), created_at: new Date().toISOString() })
+        showToast('Question added locally ✓')
+      } else {
+        adminStore.update('allQuestions', editId, payload)
+        showToast('Question updated locally ✓')
+      }
+    }
+
+    setDrawer(null)
+  }
+
+  async function confirmDelete() {
+    if (delItem) {
+      const targetId = delItem.id
+      try {
+        await fetch(`http://localhost:8080/api/questions/${targetId}`, { method: 'DELETE' })
+        showToast('Question deleted from database')
+        fetchQuestions()
+      } catch (err) {
+        adminStore.remove('allQuestions', targetId)
+        showToast('Question deleted locally')
+      }
+    }
+    setDelItem(null)
+  }
+
+  return (
+    <>
+      <SectionToolbar
+        icon="❓"
+        title="Questions Bank"
+        subtitle="Manage and add examination & interview questions with full option sets"
+        count={items.length}
+        searchVal={search}
+        onSearch={setSearch}
+        onAdd={openAdd}
+        addLabel="Add Question"
+      />
+
+      {/* Filter Row */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ad-text-2)' }}>Category:</span>
+          <select
+            className="cm-select"
+            style={{ width: 'auto', padding: '5px 12px', fontSize: 12, height: 32 }}
+            value={filterCat}
+            onChange={e => setFilterCat(e.target.value)}
+          >
+            <option value="All">All Categories</option>
+            {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ad-text-2)' }}>Difficulty:</span>
+          <select
+            className="cm-select"
+            style={{ width: 'auto', padding: '5px 12px', fontSize: 12, height: 32 }}
+            value={filterDiff}
+            onChange={e => setFilterDiff(e.target.value)}
+          >
+            <option value="All">All Difficulties</option>
+            {['Easy', 'Medium', 'Hard'].map(d => <option key={d} value={d}>{d}</option>)}
+          </select>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ad-text-2)' }}>Type:</span>
+          <select
+            className="cm-select"
+            style={{ width: 'auto', padding: '5px 12px', fontSize: 12, height: 32 }}
+            value={filterType}
+            onChange={e => setFilterType(e.target.value)}
+          >
+            <option value="All">All Types</option>
+            {TYPE_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+
+        {isSyncing && (
+          <span style={{ fontSize: 11, color: 'var(--ad-accent)', display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span>🔄</span> Syncing with DB…
+          </span>
+        )}
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyState
+          icon="❓"
+          title="No questions found"
+          desc="Click the '+ Add Question' button to create your first question with options, correct answer, and explanation."
+          onAdd={openAdd}
+        />
+      ) : (
+        <div className="cm-table-wrap">
+          <table className="cm-table">
+            <thead>
+              <tr>
+                <th style={{ width: 50 }}>#</th>
+                <th style={{ width: '38%' }}>Question</th>
+                <th>Category / Sub-category</th>
+                <th>Type</th>
+                <th>Difficulty</th>
+                <th>Options & Answer</th>
+                <th>Company Tags</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(q => {
+                const hasOpts = q.option_a || q.option_b || q.option_c || q.option_d
+                return (
+                  <tr key={q.id} style={{ cursor: 'pointer' }} onClick={() => setDetailItem(q)}>
+                    <td>
+                      <span className="cm-q-id-chip">#{q.id}</span>
+                    </td>
+                    <td>
+                      <div>
+                        <strong style={{ display: 'block', color: 'var(--ad-text)', fontSize: 13, lineHeight: 1.4 }}>
+                          {q.question?.length > 90 ? q.question.slice(0, 90) + '…' : q.question}
+                        </strong>
+                        {q.explanation && (
+                          <span className="cm-cell-sub" style={{ fontSize: 11, color: 'var(--ad-text-3)', display: 'block', marginTop: 3 }}>
+                            💡 {q.explanation.slice(0, 65)}…
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <div>
+                        <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--ad-text)' }}>{q.category}</span>
+                        {q.sub_category && (
+                          <span className="cm-cell-sub" style={{ fontSize: 11, color: 'var(--ad-accent)' }}>
+                            {q.sub_category}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="cm-badge technical" style={{ fontSize: 11 }}>{q.question_type || 'MCQ'}</span>
+                    </td>
+                    <td>
+                      <span className={`cm-badge ${badgeClass(q.difficulty)}`}>{q.difficulty || 'Medium'}</span>
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                        {hasOpts && (
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            {['A', 'B', 'C', 'D'].map(l => (
+                              <span
+                                key={l}
+                                style={{
+                                  fontSize: 10,
+                                  fontWeight: 800,
+                                  padding: '1px 5px',
+                                  borderRadius: 4,
+                                  background: (q.answer && (q.answer.toLowerCase() === l.toLowerCase() || q.answer.toLowerCase().startsWith(l.toLowerCase() + ':')))
+                                    ? 'rgba(34, 197, 94, 0.25)'
+                                    : 'var(--ad-glass)',
+                                  color: (q.answer && (q.answer.toLowerCase() === l.toLowerCase() || q.answer.toLowerCase().startsWith(l.toLowerCase() + ':')))
+                                    ? '#16a34a'
+                                    : 'var(--ad-text-3)',
+                                  border: '1px solid var(--ad-border)'
+                                }}
+                              >
+                                {l}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ad-success, #16a34a)' }}>
+                          Ans: {q.answer?.length > 22 ? q.answer.slice(0, 22) + '…' : q.answer}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      {q.company_tag ? (
+                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {q.company_tag.split(',').slice(0, 2).map((t, idx) => (
+                            <span key={idx} className="cm-tag" style={{ fontSize: 10, padding: '2px 6px' }}>
+                              {t.trim()}
+                            </span>
+                          ))}
+                          {q.company_tag.split(',').length > 2 && (
+                            <span style={{ fontSize: 10, color: 'var(--ad-text-3)' }}>
+                              +{q.company_tag.split(',').length - 2}
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="cm-cell-muted">—</span>
+                      )}
+                    </td>
+                    <td onClick={e => e.stopPropagation()}>
+                      <div className="cm-row-actions">
+                        <button className="cm-action-btn view" title="View details" onClick={() => setDetailItem(q)}>👁️</button>
+                        <button className="cm-action-btn edit" title="Edit question" onClick={() => openEdit(q)}>✏️</button>
+                        <button className="cm-action-btn del"  title="Delete question" onClick={() => setDelItem(q)}>🗑️</button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Add / Edit Drawer */}
+      {drawer && (
+        <Drawer
+          icon="❓"
+          title={drawer === 'add' ? 'Add New Question' : 'Edit Question'}
+          subtitle={drawer === 'add' ? 'Configure question statement, options A-D, answer, and taxonomy' : `Editing Question #${editId}`}
+          onClose={() => setDrawer(null)}
+          onSave={handleSave}
+          saveLabel={drawer === 'add' ? 'Save Question to Database' : 'Update Question'}
+        >
+          <QuestionForm form={form} setForm={setForm} errors={errors} />
+        </Drawer>
+      )}
+
+      {/* Delete Confirmation */}
+      {delItem && (
+        <DeleteConfirm
+          label={`Question #${delItem.id}: "${delItem.question?.slice(0, 40)}…"`}
+          onConfirm={confirmDelete}
+          onCancel={() => setDelItem(null)}
+        />
+      )}
+
+      {/* Detail Modal */}
+      {detailItem && (
+        <QuestionDetailModal
+          item={detailItem}
+          onClose={() => setDetailItem(null)}
+          onEdit={openEdit}
+        />
+      )}
+    </>
   )
 }

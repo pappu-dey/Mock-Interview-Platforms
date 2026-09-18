@@ -10,6 +10,7 @@ import Companies from "../Companies/Companies";
 import Settings from "../Settings/Settings";
 import Support from "../Support/Support";
 import Profile from "../Profile/Profile";
+import MockAptitudeWrapper from "../MockAptitude/index";
 
 // ── derive display name & initials from email ──────────────────────────────
 function nameFromEmail(email = '') {
@@ -113,6 +114,7 @@ const NAV_MAIN = [
   { label: "Dashboard", icon: Icon.Grid, section: "dashboard" },
   { label: "Practice", icon: Icon.Edit, section: "practice" },
   { label: "Mock Interviews", icon: Icon.Calendar, section: "interview" },
+  { label: "Mock Aptitude", icon: Icon.Book, section: "aptitude" },
   { label: "Performance", icon: Icon.Chart, section: "performance" },
   { label: "Resume", icon: Icon.File, section: "resume" },
   { label: "Companies", icon: Icon.Building, section: "companies" },
@@ -419,6 +421,7 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
     switch (activeSection) {
       case "practice":    return <Practice />;
       case "interview":   return <MockInterview />;
+      case "aptitude":    return <MockAptitudeWrapper />;
       case "performance": return <Performance />;
       case "resume":      return <Resume />;
       case "companies":   return <Companies />;

@@ -10,13 +10,8 @@
   background: rgba(250, 248, 245, 0.88);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-<<<<<<< HEAD
   border-bottom: 1px solid var(--border-color);
-  box-shadow: 0 1px 24px rgba(120,90,60,0.06);
-=======
-  border-bottom: 1px solid rgba(228, 161, 106, 0.15);
   box-shadow: 0 1px 24px rgba(120, 90, 60, 0.07);
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
   display: flex;
   align-items: center;
   font-family: 'Inter', sans-serif;
@@ -45,7 +40,6 @@
 
 .navbar__logo:hover { opacity: 0.85; }
 
-<<<<<<< HEAD
 .navbar__logo-dot {
   display: inline-block;
   width: 10px;
@@ -60,7 +54,8 @@
   0%  { transform: scale(1);    box-shadow: 0 0 0 0 rgba(228,161,106,0.4); background: var(--primary); }
   50% { transform: scale(1.25); box-shadow: 0 0 0 6px rgba(228,161,106,0);  background: var(--primary-light); }
   100%{ transform: scale(1);    box-shadow: 0 0 0 0 rgba(228,161,106,0); background: var(--primary); }
-=======
+}
+
 .navbar__logo-img {
   width: 38px;
   height: 38px;
@@ -81,7 +76,6 @@
 
 .navbar__logo-wordmark span {
   color: var(--accent);
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
 }
 
 /* ─── Centre Nav Links ───────────────────────────────────────────────────────── */
@@ -269,11 +263,7 @@
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--border-color);
-<<<<<<< HEAD
-  box-shadow: 0 8px 32px rgba(228,161,106,0.15);
-=======
   box-shadow: 0 8px 32px rgba(120, 90, 60, 0.10);
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
   padding: 1rem 1.5rem;
   display: flex;
   flex-direction: column;
@@ -309,11 +299,7 @@
 .navbar__mobile-menu a:hover,
 .navbar__mobile-menu button:hover {
   background: var(--p-100);
-<<<<<<< HEAD
-  color: #B4652E;
-=======
   color: var(--accent);
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
 }
 
 /* ─── Responsive breakpoints ─────────────────────────────────────────────────── */

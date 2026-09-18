@@ -15,6 +15,7 @@ import {
   GeneralQsSection,
   JavaQsSection,
   SqlQsSection,
+  QuestionsBankSection,
 } from './AdminContentSections'
 import './AdminPanel.css'
 
@@ -61,6 +62,7 @@ const NAV_ITEMS = [
   { id: 'reports',    icon: '📋', label: 'Reports',         badge: null,  group: 'main'    },
   { id: 'settings',   icon: '⚙️', label: 'Settings',        badge: null,  group: 'main'    },
   // ── Content Management ──
+  { id: 'allQuestions', icon: '❓', label: 'Questions Bank', badge: null, group: 'content' },
   { id: 'companies',  icon: '🏢', label: 'Companies',       badge: null,  group: 'content' },
   { id: 'aptitude',   icon: '📐', label: 'Aptitude Qs',     badge: null,  group: 'content' },
   { id: 'reasoning',  icon: '🧠', label: 'Reasoning Qs',    badge: null,  group: 'content' },
@@ -88,7 +90,7 @@ function RoleBadge({ role }) {
 }
 
 // ─── Overview Section ─────────────────────────────────────────────────────────
-function OverviewSection() {
+function OverviewSection({ onAddQuestion }) {
   const stats = [
     { icon: '👥', color: 'orange', label: 'Total Users',       value: '1,248', change: '+12%', up: true  },
     { icon: '🎯', color: 'green',  label: 'Interviews Today',  value: '47',    change: '+8%',  up: true  },
@@ -239,14 +241,19 @@ function OverviewSection() {
           <div className="admin-card__body">
             <div className="admin-quick-actions">
               {[
+                { icon: '❓', label: 'Add Question', onClick: onAddQuestion },
                 { icon: '📢', label: 'Announce' },
                 { icon: '📤', label: 'Export'   },
                 { icon: '🗑️', label: 'Clear Cache'},
                 { icon: '🔒', label: 'Lock User' },
                 { icon: '📧', label: 'Email All' },
-                { icon: '🔄', label: 'Refresh'   },
               ].map((a, i) => (
-                <button key={i} className="admin-qa-btn" id={`admin-qa-${a.label.toLowerCase().replace(/\s/g,'-')}`}>
+                <button
+                  key={i}
+                  className="admin-qa-btn"
+                  id={`admin-qa-${a.label.toLowerCase().replace(/\s/g,'-')}`}
+                  onClick={a.onClick}
+                >
                   <span className="admin-qa-btn__icon">{a.icon}</span>
                   <span className="admin-qa-btn__label">{a.label}</span>
                 </button>
@@ -649,6 +656,7 @@ function AdminSettingsSection({ showToast }) {
 // ─── Main AdminPanel Component ────────────────────────────────────────────────
 export default function AdminPanel({ onNavigate }) {
   const [activeNav, setActiveNav] = useState('overview')
+  const [openAddQuestion, setOpenAddQuestion] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [toast, setToast] = useState(null)
   const [time, setTime] = useState(new Date())
@@ -676,18 +684,19 @@ export default function AdminPanel({ onNavigate }) {
 
   // ── Section labels ────────────────────────────────────────────────────────────
   const SECTION_LABELS = {
-    overview:   { title: 'Overview',              subtitle: 'Platform health & key metrics' },
-    users:      { title: 'User Management',       subtitle: 'Search, filter and manage all users' },
-    interviews: { title: 'Interview Sessions',    subtitle: 'View all mock interview history' },
-    analytics:  { title: 'Analytics',             subtitle: 'Growth trends and platform insights' },
-    reports:    { title: 'Reports',               subtitle: 'Download and generate reports' },
-    settings:   { title: 'Admin Settings',        subtitle: 'Configure platform behaviour' },
-    companies:  { title: 'Companies',             subtitle: 'Add and manage company profiles' },
-    aptitude:   { title: 'Aptitude Questions',    subtitle: 'Manage quantitative aptitude MCQ topics' },
-    reasoning:  { title: 'Reasoning Questions',   subtitle: 'Manage logical reasoning MCQ topics' },
-    generalQs:  { title: 'General Interview Qs',  subtitle: 'HR & behavioral interview questions' },
-    javaQs:     { title: 'Java Interview Qs',     subtitle: 'Core Java, OOP, Collections & more' },
-    sqlQs:      { title: 'SQL Interview Qs',      subtitle: 'Joins, indexing, window functions & more' },
+    overview:     { title: 'Overview',              subtitle: 'Platform health & key metrics' },
+    users:        { title: 'User Management',       subtitle: 'Search, filter and manage all users' },
+    interviews:   { title: 'Interview Sessions',    subtitle: 'View all mock interview history' },
+    analytics:    { title: 'Analytics',             subtitle: 'Growth trends and platform insights' },
+    reports:      { title: 'Reports',               subtitle: 'Download and generate reports' },
+    settings:     { title: 'Admin Settings',        subtitle: 'Configure platform behaviour' },
+    allQuestions: { title: 'Questions Bank',        subtitle: 'Manage, search, and add questions with options, explanations, and company tags' },
+    companies:    { title: 'Companies',             subtitle: 'Add and manage company profiles' },
+    aptitude:     { title: 'Aptitude Questions',    subtitle: 'Manage quantitative aptitude MCQ topics' },
+    reasoning:    { title: 'Reasoning Questions',   subtitle: 'Manage logical reasoning MCQ topics' },
+    generalQs:    { title: 'General Interview Qs',  subtitle: 'HR & behavioral interview questions' },
+    javaQs:       { title: 'Java Interview Qs',     subtitle: 'Core Java, OOP, Collections & more' },
+    sqlQs:        { title: 'SQL Interview Qs',      subtitle: 'Joins, indexing, window functions & more' },
   }
 
   // ─── Access Denied ────────────────────────────────────────────────────────────
@@ -813,6 +822,16 @@ export default function AdminPanel({ onNavigate }) {
             />
           </div>
           <div className="admin-topbar__actions">
+            <button
+              className="admin-topbar__add-btn"
+              id="admin-topbar-add-question-btn"
+              onClick={() => {
+                setActiveNav('allQuestions')
+                setOpenAddQuestion(true)
+              }}
+            >
+              + Add Question
+            </button>
             <div
               className="admin-topbar__icon-btn"
               id="admin-notif-btn"
@@ -845,18 +864,32 @@ export default function AdminPanel({ onNavigate }) {
 
         {/* Content */}
         <div className="admin-content" id="admin-content-area">
-          {activeNav === 'overview'   && <OverviewSection />}
-          {activeNav === 'users'      && <UsersSection showToast={showToast} />}
-          {activeNav === 'interviews' && <InterviewsSection />}
-          {activeNav === 'analytics'  && <AnalyticsSection />}
-          {activeNav === 'reports'    && <ReportsSection showToast={showToast} />}
-          {activeNav === 'settings'   && <AdminSettingsSection showToast={showToast} />}
-          {activeNav === 'companies'  && <CompaniesSection showToast={showToast} />}
-          {activeNav === 'aptitude'   && <AptitudeSection  showToast={showToast} />}
-          {activeNav === 'reasoning'  && <ReasoningSection showToast={showToast} />}
-          {activeNav === 'generalQs'  && <GeneralQsSection showToast={showToast} />}
-          {activeNav === 'javaQs'     && <JavaQsSection    showToast={showToast} />}
-          {activeNav === 'sqlQs'      && <SqlQsSection     showToast={showToast} />}
+          {activeNav === 'overview'   && (
+            <OverviewSection
+              onAddQuestion={() => {
+                setActiveNav('allQuestions')
+                setOpenAddQuestion(true)
+              }}
+            />
+          )}
+          {activeNav === 'users'        && <UsersSection showToast={showToast} />}
+          {activeNav === 'interviews'   && <InterviewsSection />}
+          {activeNav === 'analytics'    && <AnalyticsSection />}
+          {activeNav === 'reports'      && <ReportsSection showToast={showToast} />}
+          {activeNav === 'settings'     && <AdminSettingsSection showToast={showToast} />}
+          {activeNav === 'allQuestions' && (
+            <QuestionsBankSection
+              showToast={showToast}
+              initialOpenAdd={openAddQuestion}
+              onResetInitialOpenAdd={() => setOpenAddQuestion(false)}
+            />
+          )}
+          {activeNav === 'companies'    && <CompaniesSection showToast={showToast} />}
+          {activeNav === 'aptitude'     && <AptitudeSection  showToast={showToast} />}
+          {activeNav === 'reasoning'    && <ReasoningSection showToast={showToast} />}
+          {activeNav === 'generalQs'    && <GeneralQsSection showToast={showToast} />}
+          {activeNav === 'javaQs'       && <JavaQsSection    showToast={showToast} />}
+          {activeNav === 'sqlQs'        && <SqlQsSection     showToast={showToast} />}
         </div>
       </div>
 

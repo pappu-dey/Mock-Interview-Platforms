@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-﻿/* authpage.css — Modern Purple UI · Auth & Welcome page — v2 */
-=======
 /* authpage.css — Warm Palette · Auth & Welcome page */
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
 /* Design tokens come from src/global.css via main.jsx */
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -42,11 +38,7 @@
   width: 450px;
   height: 450px;
   border-radius: 50%;
-<<<<<<< HEAD
-  background: radial-gradient(circle, rgba(228,161,106,0.15) 0%, transparent 70%);
-=======
-  background: radial-gradient(circle, rgba(201, 127, 74, 0.14) 0%, transparent 70%);
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
+  background: radial-gradient(circle, rgba(228, 161, 106, 0.15) 0%, transparent 70%);
   bottom: -150px;
   left: -120px;
   pointer-events: none;
@@ -111,13 +103,8 @@ summary:focus-visible {
   background: var(--surface);
   border-radius: var(--radius-lg);
   box-shadow:
-<<<<<<< HEAD
-    0 20px 60px rgba(228,161,106,0.2),
-    0 0 0 1px rgba(228,161,106,0.10);
-=======
     0 20px 60px rgba(120, 90, 60, 0.14),
     0 0 0 1px rgba(228, 161, 106, 0.10);
->>>>>>> 54bcecf010d516154f4985961fb4e94f1d8511c9
   animation: cardIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
   z-index: 1;
 }

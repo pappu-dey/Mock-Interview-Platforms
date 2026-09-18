@@ -2,6 +2,7 @@
  * Companies.jsx — Target Companies Hub
  * ─────────────────────────────────────────────────────────────────────────────
  * Features:
+ *   - "Now Hiring" strip surfacing companies with open roles right at the top
  *   - Company cards grid with readiness scores & status badges
  *   - Filter by industry, difficulty, application status
  *   - Application tracker (Saved → Applied → Interview → Offer)
@@ -258,22 +259,22 @@ const COMPANIES = [
 const STATUS_PIPELINE = ['saved', 'applied', 'interview', 'offer']
 
 const STATUS_META = {
-  saved:     { label: 'Saved',     color: '#6B7280', bg: 'rgba(107,114,128,0.1)' },
-  applied:   { label: 'Applied',   color: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
+  saved: { label: 'Saved', color: '#6B7280', bg: 'rgba(107,114,128,0.1)' },
+  applied: { label: 'Applied', color: '#3B82F6', bg: 'rgba(59,130,246,0.1)' },
   interview: { label: 'Interview', color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
-  offer:     { label: 'Offer 🎉',  color: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+  offer: { label: 'Offer 🎉', color: '#10B981', bg: 'rgba(16,185,129,0.1)' },
 }
 
 const DIFF_META = {
-  Easy:   { color: '#10B981', bg: 'rgba(16,185,129,0.1)' },
+  Easy: { color: '#10B981', bg: 'rgba(16,185,129,0.1)' },
   Medium: { color: '#F59E0B', bg: 'rgba(245,158,11,0.1)' },
-  Hard:   { color: '#EF4444', bg: 'rgba(239,68,68,0.1)' },
+  Hard: { color: '#EF4444', bg: 'rgba(239,68,68,0.1)' },
 }
 
 const ROUND_TYPE_COLOR = {
-  aptitude: { bg: 'rgba(245,158,11,0.1)',  color: '#B45309', label: '📐 Aptitude' },
-  technical: { bg: 'rgba(91,78,232,0.1)',  color: '#5B4EE8', label: '💻 Technical' },
-  hr:        { bg: 'rgba(16,185,129,0.1)', color: '#059669', label: '🤝 HR' },
+  aptitude: { bg: 'rgba(245,158,11,0.1)', color: '#B45309', label: '📐 Aptitude' },
+  technical: { bg: 'rgba(91,78,232,0.1)', color: '#5B4EE8', label: '💻 Technical' },
+  hr: { bg: 'rgba(16,185,129,0.1)', color: '#059669', label: '🤝 HR' },
 }
 
 function readinessColor(r) {
@@ -284,32 +285,90 @@ function readinessColor(r) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Companies() {
-  const [search, setSearch]               = useState('')
+  const [companiesList, setCompaniesList] = useState(COMPANIES)
+  const [search, setSearch] = useState('')
   const [filterIndustry, setFilterIndustry] = useState('All')
-  const [filterStatus, setFilterStatus]   = useState('All')
-  const [filterDiff, setFilterDiff]       = useState('All')
-  const [activeTab, setActiveTab]         = useState('all')   // 'all' | 'tracker'
-  const [selected, setSelected]           = useState(null)    // company detail modal
-  const [bookmarked, setBookmarked]       = useState(new Set(['tcs', 'accenture']))
+  const [filterStatus, setFilterStatus] = useState('All')
+  const [filterDiff, setFilterDiff] = useState('All')
+  const [activeTab, setActiveTab] = useState('all')   // 'all' | 'tracker'
+  const [selected, setSelected] = useState(null)    // company detail modal
+  const [bookmarked, setBookmarked] = useState(new Set(['tcs', 'accenture']))
 
-  const industries = ['All', ...new Set(COMPANIES.map(c => c.industry))]
-  const statuses   = ['All', ...STATUS_PIPELINE]
-  const diffs      = ['All', 'Easy', 'Medium', 'Hard']
+  // Fetch companies from Spring Boot Backend
+  React.useEffect(() => {
+    fetch('http://localhost:8080/api/companies')
+      .then(res => {
+        if (!res.ok) throw new Error('API offline')
+        return res.json()
+      })
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map(c => ({
+            id: c.companyId,
+            companyId: c.companyId,
+            name: c.companyName || 'Company',
+            fullName: c.companyName || 'Company',
+            industry: 'IT & Software',
+            logo: (c.companyLogo || c.companyName || 'CO').slice(0, 2).toUpperCase(),
+            color: '#E4A16A',
+            hq: c.headquarters || 'N/A',
+            employees: c.employees || '1,000+',
+            website: c.companyWebsite || '',
+            roles: (c.jobRoles && c.jobRoles.length > 0) 
+              ? c.jobRoles.map(r => r.roleName) 
+              : ['Software Engineer'],
+            salaryRange: (c.jobRoles && c.jobRoles[0]?.salary) || '₹5.0L – ₹12.0L',
+            difficulty: c.difficulty || 'Medium',
+            status: 'saved',
+            readiness: 78,
+            rating: Math.round(c.rating || 4),
+            hired: 'Campus Hires',
+            rounds: (c.jobRoles && c.jobRoles[0]?.hiringProcesses && c.jobRoles[0].hiringProcesses.length > 0)
+              ? c.jobRoles[0].hiringProcesses.map(hp => ({
+                  name: hp.roundName,
+                  type: (hp.roundName || '').toLowerCase().includes('hr') ? 'hr' : (hp.roundName || '').toLowerCase().includes('aptitude') ? 'aptitude' : 'technical',
+                  desc: hp.description
+                }))
+              : [{ name: 'Technical Screening', type: 'technical', desc: 'Coding and fundamentals' }],
+            topics: (c.jobRoles && c.jobRoles[0]?.technicalTopics) 
+              ? c.jobRoles[0].technicalTopics.split(',').map(t => t.trim())
+              : ['Java', 'DSA', 'SQL'],
+            tip: c.insiderTips || 'Focus on core programming skills and problem solving.',
+            openRoles: c.jobRoles ? c.jobRoles.filter(r => r.isOpen !== false).length : 1,
+            jobRoles: c.jobRoles || []
+          }))
+          setCompaniesList(mapped)
+        }
+      })
+      .catch(err => {
+        console.log('Spring Boot API not reachable, using fallback list:', err)
+      })
+  }, [])
+
+  const industries = ['All', ...new Set(companiesList.map(c => c.industry))]
+  const statuses = ['All', ...STATUS_PIPELINE]
+  const diffs = ['All', 'Easy', 'Medium', 'Hard']
+
+  // Companies actively hiring, most open roles first — surfaced right at the top
+  const hiringCompanies = useMemo(
+    () => [...companiesList].filter(c => c.openRoles > 0).sort((a, b) => b.openRoles - a.openRoles),
+    [companiesList]
+  )
 
   const filtered = useMemo(() => {
-    return COMPANIES.filter(c => {
+    return companiesList.filter(c => {
       if (filterIndustry !== 'All' && c.industry !== filterIndustry) return false
       if (filterStatus !== 'All' && c.status !== filterStatus) return false
       if (filterDiff !== 'All' && c.difficulty !== filterDiff) return false
       if (search.trim()) {
         const q = search.toLowerCase()
         return c.name.toLowerCase().includes(q) ||
-               c.fullName.toLowerCase().includes(q) ||
-               c.roles.some(r => r.toLowerCase().includes(q))
+          c.fullName.toLowerCase().includes(q) ||
+          c.roles.some(r => r.toLowerCase().includes(q))
       }
       return true
     })
-  }, [search, filterIndustry, filterStatus, filterDiff])
+  }, [companiesList, search, filterIndustry, filterStatus, filterDiff])
 
   const toggleBookmark = (id, e) => {
     e.stopPropagation()
@@ -321,7 +380,7 @@ export default function Companies() {
   }
 
   const pipelineGroups = STATUS_PIPELINE.reduce((acc, s) => {
-    acc[s] = COMPANIES.filter(c => c.status === s)
+    acc[s] = companiesList.filter(c => c.status === s)
     return acc
   }, {})
 
@@ -329,29 +388,27 @@ export default function Companies() {
     <div className="co-page">
       <div className="co-inner">
 
-        {/* ── Hero ── */}
-        <div className="co-hero">
-          <div className="co-hero__accent" />
-          <div className="co-hero__content">
-            <span className="co-hero__badge">🏢 COMPANY TRACKER</span>
-            <h1 className="co-hero__title">
-              Your <span className="co-gradient">Target Companies</span> Hub
-            </h1>
-            <p className="co-hero__sub">
-              Track your applications, explore company interview patterns, and know exactly how ready you are for each target company.
-            </p>
+        {/* ── Now Hiring strip ── */}
+        <div className="co-hiring">
+          <div className="co-hiring__head">
+            <h2 className="co-hiring__title"><span className="co-hiring__dot" />Now Hiring</h2>
+            <span className="co-hiring__count">{hiringCompanies.length} companies open</span>
           </div>
-          <div className="co-hero__stats">
-            {[
-              { label: 'Companies Tracked', value: COMPANIES.length },
-              { label: 'Applications Sent', value: COMPANIES.filter(c => ['applied','interview','offer'].includes(c.status)).length },
-              { label: 'Interviews Scheduled', value: COMPANIES.filter(c => c.status === 'interview').length },
-              { label: 'Offers Received', value: COMPANIES.filter(c => c.status === 'offer').length },
-            ].map(({ label, value }) => (
-              <div key={label} className="co-hero-stat">
-                <span className="co-hero-stat__num">{value}</span>
-                <span className="co-hero-stat__label">{label}</span>
-              </div>
+          <div className="co-hiring__row">
+            {hiringCompanies.map(c => (
+              <button
+                key={c.id}
+                type="button"
+                className="co-hiring-card"
+                onClick={() => setSelected(c)}
+              >
+                <span className="co-hiring-card__logo" style={{ background: c.color }}>{c.logo}</span>
+                <span className="co-hiring-card__info">
+                  <span className="co-hiring-card__name">{c.name}</span>
+                  <span className="co-hiring-card__roles"><Icon.Briefcase /> {c.openRoles} open roles</span>
+                </span>
+                <span className="co-hiring-card__arrow"><Icon.ArrowRight /></span>
+              </button>
             ))}
           </div>
         </div>
@@ -385,32 +442,28 @@ export default function Companies() {
         {/* ════ All Companies Tab ════ */}
         {activeTab === 'all' && (
           <>
-            {/* Filters */}
+            {/* Filters — single compact row of dropdowns */}
             <div className="co-filters">
-              <div className="co-filter-group">
-                <span className="co-filter-label"><Icon.Filter /> Industry:</span>
-                {industries.map(ind => (
-                  <button key={ind} className={`co-filter-btn ${filterIndustry === ind ? 'active' : ''}`} onClick={() => setFilterIndustry(ind)}>
-                    {ind}
-                  </button>
-                ))}
+              <span className="co-filter-label"><Icon.Filter /> Filter:</span>
+
+              <div className="co-filter-select">
+                <select value={filterIndustry} onChange={e => setFilterIndustry(e.target.value)} aria-label="Filter by industry">
+                  {industries.map(ind => <option key={ind} value={ind}>{ind === 'All' ? 'All industries' : ind}</option>)}
+                </select>
               </div>
-              <div className="co-filter-group">
-                <span className="co-filter-label">Status:</span>
-                {statuses.map(st => (
-                  <button key={st} className={`co-filter-btn ${filterStatus === st ? 'active' : ''}`} onClick={() => setFilterStatus(st)}>
-                    {st === 'All' ? 'All' : STATUS_META[st].label}
-                  </button>
-                ))}
+
+              <div className="co-filter-select">
+                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)} aria-label="Filter by status">
+                  {statuses.map(st => <option key={st} value={st}>{st === 'All' ? 'All statuses' : STATUS_META[st].label}</option>)}
+                </select>
               </div>
-              <div className="co-filter-group">
-                <span className="co-filter-label">Difficulty:</span>
-                {diffs.map(d => (
-                  <button key={d} className={`co-filter-btn ${filterDiff === d ? 'active' : ''}`} onClick={() => setFilterDiff(d)}>
-                    {d}
-                  </button>
-                ))}
+
+              <div className="co-filter-select">
+                <select value={filterDiff} onChange={e => setFilterDiff(e.target.value)} aria-label="Filter by difficulty">
+                  {diffs.map(d => <option key={d} value={d}>{d === 'All' ? 'All difficulties' : d}</option>)}
+                </select>
               </div>
+
               {(search || filterIndustry !== 'All' || filterStatus !== 'All' || filterDiff !== 'All') && (
                 <button className="co-reset-btn" onClick={() => { setSearch(''); setFilterIndustry('All'); setFilterStatus('All'); setFilterDiff('All') }}>
                   Reset ↺
@@ -626,7 +679,7 @@ export default function Companies() {
                 <div className="co-modal-section">
                   <h3 className="co-modal-section-title">Campus Experience Rating</h3>
                   <div className="co-stars">
-                    {[1,2,3,4,5].map(s => (
+                    {[1, 2, 3, 4, 5].map(s => (
                       <span key={s} className="co-star"><Icon.Star filled={s <= selected.rating} /></span>
                     ))}
                     <span className="co-star-label">{selected.rating}/5 · {selected.hired}</span>

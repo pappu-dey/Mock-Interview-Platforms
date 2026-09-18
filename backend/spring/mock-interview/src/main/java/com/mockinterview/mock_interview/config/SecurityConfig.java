@@ -49,6 +49,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints — no JWT required
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/companies/**").permitAll()
+                        .requestMatchers("/api/questions/**").permitAll()
                         // Everything else requires a valid JWT
                         .anyRequest().authenticated()
                 )

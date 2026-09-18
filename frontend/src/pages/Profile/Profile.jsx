@@ -8,11 +8,16 @@
  * current resume and displays "Your resume is saved". That keeps the UI
  * decoupled from the storage implementation.
  *
- * NEW: Resume upload lives in its own card and auto-fills the profile form
+ * Resume upload lives in its own card and auto-fills the profile form
  * (name, phone, links, skills, college, branch, graduation year) by
  * extracting text from a PDF/DOCX resume client-side and pattern-matching
  * common fields. The user always reviews the auto-filled values before
  * saving — nothing is written to the profile until they hit "Save Changes".
+ *
+ * Theme: the page supports light and dark mode via a `data-theme` attribute
+ * on the page root (see Profile.css). The choice is persisted to
+ * localStorage under `profile-theme`; on first visit it falls back to the
+ * user's OS-level `prefers-color-scheme`.
  *
  * Requires (run once in the project):
  *   npm install pdfjs-dist mammoth
@@ -42,6 +47,7 @@ function getInitials(name = '', email = '') {
 
 const URL_RE = /^https?:\/\/[^\s]+\.[^\s]+$/i
 const PHONE_RE = /^[+()\d][\d\s()+-]{6,18}$/
+const THEME_STORAGE_KEY = 'profile-theme'
 
 function getViewableResumeUrl(url) {
   if (!url) return '#'
@@ -61,6 +67,18 @@ function validateField(field, value) {
     return PHONE_RE.test(value) ? '' : 'Enter a valid phone number'
   }
   return ''
+}
+
+function getInitialTheme() {
+  if (typeof window === 'undefined') return 'light'
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
+    if (stored === 'light' || stored === 'dark') return stored
+  } catch {
+    // localStorage unavailable (privacy mode, etc.) — fall through to OS preference
+  }
+  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark'
+  return 'light'
 }
 
 const KNOWN_ROLES = ['student', 'company', 'admin']
@@ -209,6 +227,7 @@ function extractFieldsFromText(text) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Profile({ user = {}, onLogout = () => { } }) {
+  const [theme, setTheme] = useState(getInitialTheme)
   const [editing, setEditing] = useState(false)
   const [toast, setToast] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -237,11 +256,24 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
     [form, savedForm]
   )
 
-  // ── Profile completeness (used for the meter in the hero card) ───────────
+  // ── Profile completeness (used for the ring around the avatar) ───────────
   const completeness = useMemo(() => {
     const filled = PROFILE_FIELDS.filter((f) => String(savedForm[f] || '').trim()).length
     return Math.round((filled / PROFILE_FIELDS.length) * 100)
   }, [savedForm])
+
+  // ── Persist theme choice + apply to the page root ─────────────────────────
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, theme)
+    } catch {
+      // ignore — theme still applies for this session even if it can't persist
+    }
+  }, [theme])
+
+  const toggleTheme = useCallback(() => {
+    setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+  }, [])
 
   // ── Fetch profile & resume on mount ──────────────────────────────────────
   useEffect(() => {
@@ -515,42 +547,67 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
 
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="profile-page">
+    <div className="profile-page" data-theme={theme}>
       <div className="profile-inner">
 
-        {/* ── Page heading ── */}
-        <p className="section-title">My Profile</p>
+        {/* ── Page heading + theme toggle ── */}
+        <div className="profile-page-header">
+          <p className="section-title">My Profile</p>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={toggleTheme}
+            role="switch"
+            aria-checked={theme === 'dark'}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            <span className="theme-toggle__thumb" aria-hidden="true">
+              {theme === 'dark' ? '🌙' : '☀️'}
+            </span>
+          </button>
+        </div>
 
         {/* ═══════════════════════════════════════════════════════════════════
-            HERO CARD — avatar · name · role badges · completeness
+            HERO CARD — avatar · name · role badges · completeness ring
         ═══════════════════════════════════════════════════════════════════ */}
         <div className="profile-card">
           <div className="profile-hero">
 
-            {/* Avatar */}
-            <div className="profile-avatar" role="img" aria-label={`Avatar for ${displayName}`}>
-              {avatarPreview
-                ? <img className="profile-avatar__img" src={avatarPreview} alt="" />
-                : getInitials(form.fullName, user.email)}
-              {editing && (
-                <button
-                  type="button"
-                  className="profile-avatar__edit"
-                  onClick={handleAvatarButtonClick}
-                  title="Change photo"
-                  aria-label="Change profile photo"
-                >
-                  📷
-                </button>
+            {/* Avatar with completeness ring */}
+            <div
+              className="profile-avatar-ring"
+              style={{ '--pct': loading ? 0 : completeness }}
+            >
+              <div className="profile-avatar" role="img" aria-label={`Avatar for ${displayName}`}>
+                {avatarPreview
+                  ? <img className="profile-avatar__img" src={avatarPreview} alt="" />
+                  : getInitials(form.fullName, user.email)}
+                {editing && (
+                  <button
+                    type="button"
+                    className="profile-avatar__edit"
+                    onClick={handleAvatarButtonClick}
+                    title="Change photo"
+                    aria-label="Change profile photo"
+                  >
+                    📷
+                  </button>
+                )}
+                <input
+                  ref={avatarInputRef}
+                  className="profile-avatar__input"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  tabIndex={-1}
+                />
+              </div>
+              {!loading && (
+                <span className="profile-avatar-ring__pct" aria-hidden="true">
+                  {completeness}%
+                </span>
               )}
-              <input
-                ref={avatarInputRef}
-                className="profile-avatar__input"
-                type="file"
-                accept="image/*"
-                onChange={handleAvatarChange}
-                tabIndex={-1}
-              />
             </div>
 
             {/* Identity */}
@@ -568,25 +625,24 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
               </div>
 
               {!loading && (
-                <div className="completeness" aria-label={`Profile ${completeness}% complete`}>
-                  <div className="completeness__track">
-                    <div className="completeness__fill" style={{ width: `${completeness}%` }} />
-                  </div>
-                  <span className="completeness__label">{completeness}% complete</span>
-                </div>
+                <p className="completeness-label" aria-label={`Profile ${completeness}% complete`}>
+                  Profile <strong>{completeness}% complete</strong>
+                </p>
               )}
             </div>
 
             {/* Edit button */}
             {!editing && !loading && (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setEditing(true)}
-                id="profile-edit-btn"
-              >
-                ✏️ Edit
-              </Button>
+              <div className="profile-hero__actions">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setEditing(true)}
+                  id="profile-edit-btn"
+                >
+                  ✏️ Edit
+                </Button>
+              </div>
             )}
           </div>
 
@@ -715,13 +771,11 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
 
           {loading ? (
             /* ── Skeleton loader ─────────────────────────────────────────── */
-            <div className="profile-form" style={{ opacity: 0.5 }}>
+            <div className="profile-form" style={{ opacity: 0.6 }}>
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="form-field">
-                  <div className="form-label" style={{ background: 'var(--p-100)', height: 12, width: 80, borderRadius: 6 }} />
-                  <div className="form-input" style={{ background: 'var(--p-50)', color: 'transparent', userSelect: 'none' }}>
-                    &nbsp;
-                  </div>
+                  <div className="form-label skeleton-block" style={{ height: 12, width: 80 }} />
+                  <div className="form-input skeleton-input">&nbsp;</div>
                 </div>
               ))}
             </div>
@@ -915,7 +969,7 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.25rem' }}>
                       {form.skills.split(',').map((s) => s.trim()).filter(Boolean).map((skill) => (
                         <span key={skill} style={{
-                          background: 'var(--p-100)', color: 'var(--primary)',
+                          background: 'var(--p-100)', color: 'var(--primary-dark)',
                           padding: '0.2rem 0.65rem', borderRadius: '999px',
                           fontSize: '0.75rem', fontWeight: 600
                         }}>
