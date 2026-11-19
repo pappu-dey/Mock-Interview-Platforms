@@ -11,3 +11,4 @@ public class MockInterviewApplication {
 	}
 
 }
+//make the dashbord workable make necessary database tables and make all wellworked the dashbord and performance 

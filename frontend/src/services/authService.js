@@ -13,12 +13,12 @@
  *   await authService.login(email, password)
  */
 
-const BASE_URL = 'http://localhost:8080/api/auth'
+const BASE_URL = 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/auth'
 
 // ─── Token Storage Keys ────────────────────────────────────────────────────────
 const KEYS = {
   TOKEN: 'jwt_token',
-  ROLE:  'user_role',
+  ROLE: 'user_role',
   EMAIL: 'user_email',
 }
 
@@ -47,7 +47,7 @@ async function post(endpoint, body) {
 // ─── Session helpers ───────────────────────────────────────────────────────────
 function saveSession({ token, role, email }) {
   localStorage.setItem(KEYS.TOKEN, token)
-  localStorage.setItem(KEYS.ROLE,  role)
+  localStorage.setItem(KEYS.ROLE, role)
   localStorage.setItem(KEYS.EMAIL, email)
 }
 
@@ -81,7 +81,7 @@ function isAdmin() {
 function getCurrentUser() {
   return {
     email: localStorage.getItem(KEYS.EMAIL),
-    role:  localStorage.getItem(KEYS.ROLE),
+    role: localStorage.getItem(KEYS.ROLE),
     token: localStorage.getItem(KEYS.TOKEN),
   }
 }
@@ -111,18 +111,22 @@ async function register(email, password, role) {
  * @returns {Promise<{ token: string, role: string, email: string }>}
  */
 async function login(email, password) {
-  if (email === 'test@test.com' && password === 'test') {
-    const mockData = {
-      token: 'mock-jwt-token-for-test-user',
-      role: 'student',
-      email,
+  try {
+    const data = await post('/login', { email, password })
+    saveSession({ token: data.token, role: data.role, email })
+    return { ...data, email }
+  } catch (err) {
+    if (email === 'test@test.com' && password === 'test') {
+      const mockData = {
+        token: 'mock-jwt-token-for-test-user',
+        role: 'student',
+        email,
+      }
+      saveSession(mockData)
+      return mockData
     }
-    saveSession(mockData)
-    return mockData
+    throw err
   }
-  const data = await post('/login', { email, password })
-  saveSession({ token: data.token, role: data.role, email })
-  return { ...data, email }
 }
 
 /**

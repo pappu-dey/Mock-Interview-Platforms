@@ -10,7 +10,7 @@
  *   await profileService.saveProfile({ fullName: 'Jane', ... })
  */
 
-const BASE_URL = 'http://localhost:8080/api/profile'
+const BASE_URL = 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/profile'
 const TOKEN_KEY = 'jwt_token'
 
 // ─── Shared authenticated fetch ───────────────────────────────────────────────

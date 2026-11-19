@@ -5,15 +5,17 @@ target/
 !**/src/test/**/target/
 
 ### Secrets & Private Config ###
-src/main/resources/application-local.properties
-src/main/resources/application-local.yml
-src/main/resources/application-secret.properties
-src/main/resources/application-secret.yml
-src/main/resources/application.properties
-!src/main/resources/application.properties.example
-.env
-.env.*
-!.env.example
+**/application-local.properties
+**/application-local.yml
+**/application-secret.properties
+**/application-secret.yml
+**/application-secrate.properties
+**/application-secrate.yml
+**/templates/application-secrate.properties
+
+**/.env
+**/.env.*
+!**/.env.example
 
 ### STS ###
 .apt_generated
@@ -36,6 +38,7 @@ src/main/resources/application.properties
 /dist/
 /nbdist/
 /.nb-gradle/
+
 build/
 !**/src/main/**/build/
 !**/src/test/**/build/

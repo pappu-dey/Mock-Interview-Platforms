@@ -8,7 +8,7 @@
  * Automatically attaches: Authorization: Bearer <JWT from localStorage>
  */
 
-const BASE_URL = 'http://localhost:8080'
+const BASE_URL = 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io'
 
 /**
  * Perform an authenticated HTTP request.

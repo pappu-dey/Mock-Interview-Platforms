@@ -1,8 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
+import practiceService from "../../services/practiceService";
 import "./AptitudeExam.css";
 
-/* ─── Question Banks ─────────────────────────────────────────────────────── */
+/* ─── Category → DB category mapping ────────────────────────────────────── */
+const CATEGORY_DB_MAP = {
+  quantitative: "Quantitative Aptitude",
+  technical: "Technical",
+  reasoning: "Logical Reasoning",
+  verbal: "Verbal Ability",
+};
+
+/* ─── Exam question counts per category ─────────────────────────────────── */
+const EXAM_QUESTION_COUNT = {
+  quantitative: 25,
+  technical: 30,
+  reasoning: 20,
+  verbal: 20,
+};
+
+/* ─── Fallback Static Question Banks (used if API is unavailable) ─────── */
 const QUESTION_BANK = {
   quantitative: [
     { id: 1, question: "A train travels 360 km in 4 hours. What is its speed in m/s?", options: ["25 m/s", "90 m/s", "100 m/s", "36 m/s"], answer: 0 },
@@ -79,7 +96,7 @@ const QUESTION_BANK = {
     { id: 13, question: "How many times does digit 3 appear from 1 to 100?", options: ["10", "19", "20", "21"], answer: 2 },
     { id: 14, question: "In a certain language, GARDEN is coded as GRDAEN. How is FLOWER coded?", options: ["FWOLRE", "FLOWRE", "FLWOER", "FOLWER"], answer: 0 },
     { id: 15, question: "If Sunday falls on 1st March, what day is 25th March?", options: ["Saturday", "Sunday", "Monday", "Friday"], answer: 1 },
-    { id: 16, question: "What is the water image of the word CHAIR?", options: ["CHAIR inverted vertically", "RIAH​C", "Same as mirror", "None"], answer: 0 },
+    { id: 16, question: "What is the water image of the word CHAIR?", options: ["CHAIR inverted vertically", "RIAH\u200bC", "Same as mirror", "None"], answer: 0 },
     { id: 17, question: "6 men can complete work in 8 days. How many men are needed to do the same in 4 days?", options: ["10", "12", "14", "8"], answer: 1 },
     { id: 18, question: "P is Q's brother. Q is R's sister. R is S's son. How is P related to S?", options: ["Son", "Nephew", "Daughter", "Cannot determine"], answer: 1 },
     { id: 19, question: "Complete the analogy: Doctor : Hospital :: Teacher : ?", options: ["Book", "School", "Knowledge", "Student"], answer: 1 },
@@ -109,6 +126,36 @@ const QUESTION_BANK = {
   ],
 };
 
+/* ─── Convert DB row → exam question format ─────────────────────────────── */
+function dbRowToQuestion(row, idx) {
+  const options = [row.option_a, row.option_b, row.option_c, row.option_d].filter(Boolean);
+  // answer field in DB is the text of the correct option; find its index
+  const rawAnswer = (row.answer || "").trim().toUpperCase();
+  let answerIdx = 0;
+  if (rawAnswer === "A") answerIdx = 0;
+  else if (rawAnswer === "B") answerIdx = 1;
+  else if (rawAnswer === "C") answerIdx = 2;
+  else if (rawAnswer === "D") answerIdx = 3;
+  else {
+    // Try matching full text
+    const matched = options.findIndex(
+      (opt) => opt && opt.trim().toLowerCase() === row.answer.trim().toLowerCase()
+    );
+    answerIdx = matched >= 0 ? matched : 0;
+  }
+  return { id: row.id ?? idx + 1, question: row.question, options, answer: answerIdx };
+}
+
+/* ─── Fisher-Yates shuffle ──────────────────────────────────────────────── */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 /* ─── Web Audio Violation Sound ─────────────────────────────────────────── */
 function playViolationBeep() {
   try {
@@ -126,7 +173,7 @@ function playViolationBeep() {
     gain.connect(ctx.destination);
     osc.start();
     osc.stop(ctx.currentTime + 0.35);
-  } catch (e) {}
+  } catch (e) { }
 }
 
 /* ─── Timer formatter ────────────────────────────────────────────────────── */
@@ -147,21 +194,74 @@ const MAX_VIOLATIONS = 3;
 
 /* ─── Main Aptitude Exam Component ───────────────────────────────────────── */
 export default function AptitudeExam({ category, onExit }) {
-  const questions = QUESTION_BANK[category.id] || [];
   const totalTime = DURATIONS[category.id] || 30 * 60;
+  const examCount = EXAM_QUESTION_COUNT[category.id] || 20;
+
+  // ── Questions loaded from DB (or fallback) ──────────────────────────────
+  const [questions, setQuestions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
+
+  useEffect(() => {
+    const dbCategory = CATEGORY_DB_MAP[category.id];
+    if (!dbCategory) {
+      const fb = QUESTION_BANK[category.id] || [];
+      setQuestions(shuffle(fb).slice(0, examCount));
+      setIsLoading(false);
+      return;
+    }
+    const controller = new AbortController();
+    fetch(`https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions?category=${encodeURIComponent(dbCategory)}`, {
+      signal: controller.signal,
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          const mapped = data.map(dbRowToQuestion);
+          setQuestions(shuffle(mapped).slice(0, examCount));
+          setLoadError(null);
+        } else {
+          const fb = QUESTION_BANK[category.id] || [];
+          setQuestions(shuffle(fb).slice(0, examCount));
+          setLoadError("no_db_data");
+        }
+        setIsLoading(false);
+      })
+      .catch((err) => {
+        if (err.name === "AbortError") return;
+        const fb = QUESTION_BANK[category.id] || [];
+        setQuestions(shuffle(fb).slice(0, examCount));
+        setLoadError(err.message);
+        setIsLoading(false);
+      });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [category.id]);
 
   const [currentQ, setCurrentQ] = useState(0);
-  const [answers, setAnswers] = useState(Array(questions.length).fill(null));
+  const [answers, setAnswers] = useState([]);
   const [timeLeft, setTimeLeft] = useState(totalTime);
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(null);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [flagged, setFlagged] = useState(Array(questions.length).fill(false));
-  const [visited, setVisited] = useState(() => {
-    const arr = Array(questions.length).fill(false);
-    if (arr.length > 0) arr[0] = true;
-    return arr;
-  });
+  const [flagged, setFlagged] = useState([]);
+  const [visited, setVisited] = useState([]);
+
+  // Re-initialize answer/flag/visited arrays once questions are ready
+  useEffect(() => {
+    if (questions.length > 0 && answers.length !== questions.length) {
+      setAnswers(Array(questions.length).fill(null));
+      setFlagged(Array(questions.length).fill(false));
+      setVisited(() => {
+        const arr = Array(questions.length).fill(false);
+        arr[0] = true;
+        return arr;
+      });
+    }
+  }, [questions.length, answers.length]);
 
   // Strict Anti-Cheat States
   const [warningCount, setWarningCount] = useState(0);
@@ -194,7 +294,7 @@ export default function AptitudeExam({ category, onExit }) {
       if ("keyboard" in navigator && typeof navigator.keyboard.lock === "function") {
         await navigator.keyboard.lock(["Escape"]);
       }
-    } catch (err) {}
+    } catch (err) { }
   }, []);
 
   const releaseKeyboardLock = useCallback(() => {
@@ -202,7 +302,7 @@ export default function AptitudeExam({ category, onExit }) {
       if ("keyboard" in navigator && typeof navigator.keyboard.unlock === "function") {
         navigator.keyboard.unlock();
       }
-    } catch (err) {}
+    } catch (err) { }
   }, []);
 
   /* ── Fullscreen Request Helpers ────────────────────────────────────────── */
@@ -211,15 +311,15 @@ export default function AptitudeExam({ category, onExit }) {
     const req = el.requestFullscreen
       ? el.requestFullscreen()
       : el.webkitRequestFullscreen
-      ? el.webkitRequestFullscreen()
-      : el.mozRequestFullScreen
-      ? el.mozRequestFullScreen()
-      : el.msRequestFullscreen
-      ? el.msRequestFullscreen()
-      : null;
+        ? el.webkitRequestFullscreen()
+        : el.mozRequestFullScreen
+          ? el.mozRequestFullScreen()
+          : el.msRequestFullscreen
+            ? el.msRequestFullscreen()
+            : null;
 
     if (req && typeof req.then === "function") {
-      req.then(() => requestKeyboardLock()).catch(() => {});
+      req.then(() => requestKeyboardLock()).catch(() => { });
     } else {
       requestKeyboardLock();
     }
@@ -229,11 +329,11 @@ export default function AptitudeExam({ category, onExit }) {
     releaseKeyboardLock();
     try {
       if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement) {
-        if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+        if (document.exitFullscreen) document.exitFullscreen().catch(() => { });
         else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
         else if (document.mozCancelFullScreen) document.mozCancelFullScreen();
       }
-    } catch (err) {}
+    } catch (err) { }
   }, [releaseKeyboardLock]);
 
   /* ── Auto / Manual Submission Helpers ─────────────────────────────────── */
@@ -255,7 +355,21 @@ export default function AptitudeExam({ category, onExit }) {
     setSecurityBreachModal(false);
     setShowConfirm(false);
     exitFullscreen();
-  }, [calcScore, exitFullscreen]);
+
+    const totalQ = questions ? questions.length : 20;
+    const pct = totalQ > 0 ? Math.round((sc / totalQ) * 100) : 0;
+    const catLabel = CATEGORY_DB_MAP[category?.id] || category?.title || "Quantitative Aptitude";
+    const spentSec = Math.max(30, totalTime - timeLeft);
+    practiceService.recordAssessmentSession({
+      category: catLabel,
+      topic: `${category?.title || catLabel} Exam`,
+      totalQuestions: totalQ,
+      correctCount: sc,
+      score: pct,
+      timeSpentSeconds: spentSec,
+      type: "Aptitude",
+    });
+  }, [calcScore, exitFullscreen, questions, category, totalTime, timeLeft]);
 
   handleFinalSubmitRef.current = handleFinalSubmit;
 
@@ -490,7 +604,7 @@ export default function AptitudeExam({ category, onExit }) {
 
   /* ── Exam Countdown Timer ─────────────────────────────────────────────── */
   useEffect(() => {
-    if (submitted) return;
+    if (submitted || isLoading) return;
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
@@ -502,7 +616,7 @@ export default function AptitudeExam({ category, onExit }) {
       });
     }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [handleFinalSubmit, submitted]);
+  }, [handleFinalSubmit, submitted, isLoading]);
 
   /* ── Question Navigation Helpers ──────────────────────────────────────── */
   function navigateToQuestion(idx) {
@@ -553,6 +667,20 @@ export default function AptitudeExam({ category, onExit }) {
   const unattemptedCount = questions.length - answeredCount;
   const timerCritical = timeLeft < 300; // < 5 minutes
   const pct = Math.round(((score || 0) / questions.length) * 100);
+
+  /* ── 0. Loading Screen ──────────────────────────────────────────────────── */
+  if (isLoading) {
+    return createPortal(
+      <div className="exam-loading-screen">
+        <div className="exam-loading-box">
+          <div className="exam-loading-spinner" />
+          <p className="exam-loading-text">Loading questions from database…</p>
+          <p className="exam-loading-sub">Please wait. Do not close this window.</p>
+        </div>
+      </div>,
+      document.body
+    );
+  }
 
   /* ── 1. Result & Disqualification View ─────────────────────────────────── */
   if (submitted) {

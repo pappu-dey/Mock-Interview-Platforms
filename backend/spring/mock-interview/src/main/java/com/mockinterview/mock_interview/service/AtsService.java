@@ -21,7 +21,7 @@ import java.time.Duration;
 @Service
 public class AtsService {
 
-    @Value("${gemini.api.key}")
+    @Value("${gemini.api.key:${GEMINI_API_KEY:}}")
     private String geminiApiKey;
 
     private static final String GEMINI_ENDPOINT =
@@ -79,6 +79,9 @@ public class AtsService {
      * @return raw JSON string from AI — caller returns it directly to frontend
      */
     public String analyzeResume(String resumeText, String targetRole) throws Exception {
+        if (geminiApiKey == null || geminiApiKey.isBlank()) {
+            throw new RuntimeException("Gemini API key is not configured. Please set GEMINI_API_KEY in application.properties or environment.");
+        }
         String role = (targetRole == null || targetRole.isBlank()) ? "Software Engineer" : targetRole.trim();
 
         // Trim to 4500 chars to stay well within token limits

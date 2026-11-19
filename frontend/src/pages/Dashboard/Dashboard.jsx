@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "./Dashboard.css";
 import authService from "../../services/authService";
+import dashboardService from "../../services/dashboardService";
 import logoImg from "../../assets/prepilot.png";
 import Practice from "../Practice/Practice";
 import MockInterview from "../mockinterview/mockinterview";
@@ -102,6 +103,11 @@ const Icon = {
       <circle cx="12" cy="8" r="4" /><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
   ),
+  Flame: () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+    </svg>
+  ),
   LogOut: () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" />
@@ -109,7 +115,35 @@ const Icon = {
   ),
 };
 
-// ---- data (swap these for real data / API results) ----
+// ---- fallback data (used while loading or on API error) ----
+const DEFAULT_STATS = [
+  { title: "Total Interviews", number: "12", change: "+3 this wk", icon: Icon.Users },
+  { title: "Average Score", number: "85%", change: "+5.2%", icon: Icon.Trend },
+  { title: "Questions Solved", number: "120", change: "+18 solved", icon: Icon.Book },
+  { title: "Daily Streak", number: "5 Days", change: "🔥 Active", icon: Icon.Flame },
+];
+
+const DEFAULT_CHART_DATA = [
+  { label: "Java", height: 52, color: "var(--accent-light)" },
+  { label: "DSA", height: 78, color: "var(--accent)" },
+  { label: "SQL", height: 64, color: "#EFE2D3" },
+  { label: "System", height: 90, color: "#C97F4A" },
+  { label: "HR", height: 45, color: "var(--accent-light)" },
+  { label: "Behav.", height: 70, color: "var(--accent)" },
+];
+
+const DEFAULT_COMPANIES = [
+  { name: "TCS", role: "Software Engineer", readiness: 82, status: "Ready", logoBg: "#3C6FBB", initials: "TCS" },
+  { name: "Infosys", role: "Systems Engineer", readiness: 67, status: "In Progress", logoBg: "#1C6DB0", initials: "IN" },
+  { name: "Wipro", role: "Project Engineer", readiness: 54, status: "In Progress", logoBg: "#5B2B82", initials: "WI" },
+  { name: "Accenture", role: "Associate Developer", readiness: 90, status: "Ready", logoBg: "#7C2A8C", initials: "AC" },
+];
+
+const DEFAULT_MEETINGS = [
+  { title: "Technical Mock Interview", subtitle: "with Ananya Kapoor", time: "3:00 PM", initials: "TM", color: "#C97F4A" },
+  { title: "HR Round Practice", subtitle: "with Rahul Mehta", time: "6:30 PM", initials: "HR", color: "#E4A16A" },
+  { title: "SQL Quiz Review", subtitle: "Self-paced", time: "Tomorrow", initials: "SQ", color: "#8C8C8C" },
+];
 const NAV_MAIN = [
   { label: "Dashboard", icon: Icon.Grid, section: "dashboard" },
   { label: "Practice", icon: Icon.Edit, section: "practice" },
@@ -130,6 +164,7 @@ const STATS = [
   { title: "Total Interviews", number: "12", change: "+3 this wk", icon: Icon.Users },
   { title: "Average Score", number: "85%", change: "+5.2%", icon: Icon.Trend },
   { title: "Questions Solved", number: "120", change: "+18 solved", icon: Icon.Book },
+  { title: "Daily Streak", number: "5 Days", change: "🔥 Active", icon: Icon.Flame },
 ];
 
 const CHART_DATA = [
@@ -249,10 +284,11 @@ function Header({ user }) {
   );
 }
 
-function StatsRow() {
+function StatsRow({ stats }) {
+  const items = stats && stats.length > 0 ? stats : DEFAULT_STATS;
   return (
     <div className="stats-row">
-      {STATS.map(({ title, number, change, icon: StatIcon }) => (
+      {items.map(({ title, number, change, icon: StatIcon }) => (
         <div className="stat-card" key={title}>
           <div className="stat-top">
             <div className="stat-icon"><StatIcon /></div>
@@ -266,7 +302,8 @@ function StatsRow() {
   );
 }
 
-function AnalyticsCard() {
+function AnalyticsCard({ chartData }) {
+  const items = chartData && chartData.length > 0 ? chartData : DEFAULT_CHART_DATA;
   return (
     <div className="analytics-card">
       <div className="analytics-head">
@@ -279,7 +316,7 @@ function AnalyticsCard() {
       <div className="analytics-body">
         <div className="chart-wrap">
           <div className="chart">
-            {CHART_DATA.map(({ label, height, color }) => (
+            {items.map(({ label, height, color }) => (
               <div className="bar-col" key={label}>
                 <div className="bar" style={{ height: `${height}%`, background: color }} />
                 <div className="bar-label">{label}</div>
@@ -303,7 +340,8 @@ function AnalyticsCard() {
   );
 }
 
-function CompaniesTable() {
+function CompaniesTable({ companies }) {
+  const items = companies && companies.length > 0 ? companies : DEFAULT_COMPANIES;
   return (
     <div className="table-card">
       <div className="table-head">
@@ -323,7 +361,7 @@ function CompaniesTable() {
           </tr>
         </thead>
         <tbody>
-          {COMPANIES.map(({ name, role, readiness, status, logoBg, initials }) => (
+          {items.map(({ name, role, readiness, status, logoBg, initials }) => (
             <tr key={name}>
               <td>
                 <div className="company-cell">
@@ -350,14 +388,15 @@ function CompaniesTable() {
   );
 }
 
-function UpcomingInterviews({ onNavigate }) {
+function UpcomingInterviews({ meetings, onNavigate }) {
+  const items = meetings && meetings.length > 0 ? meetings : DEFAULT_MEETINGS;
   return (
     <div className="dark-card">
       <div className="dark-card-head">
         <h3>Upcoming Interviews</h3>
-        <span>{MEETINGS.length} today</span>
+        <span>{items.length} today</span>
       </div>
-      {MEETINGS.map(({ title, subtitle, time, initials, color }) => (
+      {items.map(({ title, subtitle, time, initials, color }) => (
         <div
           className="meeting-row"
           key={title}
@@ -400,13 +439,13 @@ function Recommendations() {
 }
 
 // ── inline content rendered for each section ──────────────────────────────
-function DashboardHome({ user, onNavigate }) {
+function DashboardHome({ user, onNavigate, stats, chartData, companies }) {
   return (
     <>
       <Header user={user} />
-      <StatsRow />
-      <AnalyticsCard />
-      <CompaniesTable />
+      <StatsRow stats={stats} />
+      <AnalyticsCard chartData={chartData} />
+      <CompaniesTable companies={companies} />
     </>
   );
 }
@@ -415,6 +454,85 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
   const user = userProp || authService.getCurrentUser()
   const [activeSection, setActiveSection] = useState("dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(false)
+
+  const [stats, setStats] = useState(DEFAULT_STATS);
+  const [chartData, setChartData] = useState(DEFAULT_CHART_DATA);
+  const [companies, setCompanies] = useState(DEFAULT_COMPANIES);
+  const [meetings, setMeetings] = useState(DEFAULT_MEETINGS);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadDashboardData() {
+      try {
+        const [statsRes, chartRes, compRes, meetRes] = await Promise.allSettled([
+          dashboardService.getDashboardStats(),
+          dashboardService.getChartData(),
+          dashboardService.getCompaniesReadiness(),
+          dashboardService.getUpcomingInterviews(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (statsRes.status === 'fulfilled' && statsRes.value) {
+          const d = statsRes.value;
+          setStats([
+            { title: "Total Interviews", number: String(d.totalInterviews ?? 12), change: d.weeklyChange || "+3 this wk", icon: Icon.Users },
+            { title: "Average Score", number: `${Math.round(d.averageScore ?? 85)}%`, change: "+5.2%", icon: Icon.Trend },
+            { title: "Questions Solved", number: String(d.questionsSolved ?? 0), change: "+ solved", icon: Icon.Book },
+            { title: "Daily Streak", number: `${Math.max(1, d.currentStreak ?? 1)} Days`, change: "🔥 Active", icon: Icon.Flame },
+          ]);
+        }
+
+        if (chartRes.status === 'fulfilled' && Array.isArray(chartRes.value) && chartRes.value.length > 0) {
+          setChartData(chartRes.value.map(c => ({
+            label: c.label || 'Topic',
+            height: c.height || c.score || 60,
+            color: c.color || 'var(--accent)'
+          })));
+        }
+
+        if (compRes.status === 'fulfilled' && Array.isArray(compRes.value) && compRes.value.length > 0) {
+          setCompanies(compRes.value.map(c => ({
+            name: c.name || 'Company',
+            role: c.role || 'Software Engineer',
+            readiness: c.readiness ?? 75,
+            status: c.status || (c.readiness >= 75 ? 'Ready' : 'In Progress'),
+            logoBg: c.logoBg || '#3C6FBB',
+            initials: c.initials || (c.name ? c.name.slice(0, 2).toUpperCase() : 'CO')
+          })));
+        }
+
+        if (meetRes.status === 'fulfilled' && Array.isArray(meetRes.value) && meetRes.value.length > 0) {
+          setMeetings(meetRes.value.map(m => ({
+            title: m.title || 'Mock Interview',
+            subtitle: m.subtitle || 'Scheduled Session',
+            time: m.time || '3:00 PM',
+            initials: m.initials || 'MI',
+            color: m.color || '#C97F4A'
+          })));
+        }
+      } catch (err) {
+        console.warn("Could not load dashboard data from API, using fallback data:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+
+    if (activeSection === "dashboard") {
+      loadDashboardData();
+    }
+
+    const handlePracticeStatsUpdated = () => {
+      loadDashboardData();
+    };
+    window.addEventListener('practice-stats-updated', handlePracticeStatsUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('practice-stats-updated', handlePracticeStatsUpdated);
+    };
+  }, [activeSection]);
 
   // Render the right content based on active section
   function renderContent() {
@@ -430,7 +548,15 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
       case "profile":     return <Profile user={user} onLogout={onLogout} />;
       case "dashboard":
       default:
-        return <DashboardHome user={user} onNavigate={onNavigate} />;
+        return (
+          <DashboardHome
+            user={user}
+            onNavigate={onNavigate}
+            stats={stats}
+            chartData={chartData}
+            companies={companies}
+          />
+        );
     }
   }
 
@@ -472,7 +598,7 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
 
         {isDefaultDashboard && (
           <aside className="right">
-            <UpcomingInterviews onNavigate={onNavigate} />
+            <UpcomingInterviews meetings={meetings} onNavigate={onNavigate} />
             <Recommendations />
           </aside>
         )}

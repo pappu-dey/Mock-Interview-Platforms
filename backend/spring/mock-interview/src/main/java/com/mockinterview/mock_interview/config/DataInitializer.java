@@ -1,33 +1,63 @@
 package com.mockinterview.mock_interview.config;
 
-import com.mockinterview.mock_interview.entity.Company;
-import com.mockinterview.mock_interview.entity.HiringProcess;
-import com.mockinterview.mock_interview.entity.JobRole;
+import com.mockinterview.mock_interview.entity.*;
 import com.mockinterview.mock_interview.repository.CompanyRepository;
+import com.mockinterview.mock_interview.repository.ProfileRepository;
+import com.mockinterview.mock_interview.repository.QuestionRepository;
+import com.mockinterview.mock_interview.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
 
     private final CompanyRepository companyRepository;
-    private final com.mockinterview.mock_interview.repository.QuestionRepository questionRepository;
+    private final QuestionRepository questionRepository;
+    private final UserRepository userRepository;
+    private final ProfileRepository profileRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public DataInitializer(CompanyRepository companyRepository,
-                           com.mockinterview.mock_interview.repository.QuestionRepository questionRepository) {
+                           QuestionRepository questionRepository,
+                           UserRepository userRepository,
+                           ProfileRepository profileRepository,
+                           PasswordEncoder passwordEncoder) {
         this.companyRepository = companyRepository;
         this.questionRepository = questionRepository;
+        this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) throws Exception {
+        seedDefaultUser();
         if (companyRepository.count() == 0) {
             seedCompanies();
         }
         if (questionRepository.count() == 0) {
             seedQuestions();
+        }
+    }
+
+    private void seedDefaultUser() {
+        if (!userRepository.existsByEmail("test@test.com")) {
+            User testUser = new User();
+            testUser.setEmail("test@test.com");
+            testUser.setPassword(passwordEncoder.encode("test"));
+            testUser.setRole(Role.STUDENT);
+            testUser.setCreatedAt(LocalDateTime.now());
+            User saved = userRepository.save(testUser);
+
+            Profile profile = new Profile();
+            profile.setUser(saved);
+            profile.setFullName("Test User");
+            profileRepository.save(profile);
+            System.out.println("✅ Default user test@test.com seeded.");
         }
     }
 
@@ -137,11 +167,41 @@ public class DataInitializer implements CommandLineRunner {
                 .optionD("324 metres")
                 .answer("150 metres")
                 .category("Quantitative Aptitude")
-                .subCategory("Speed, Time & Distance")
+                .subCategory("Problems on Trains")
                 .questionType("MCQ")
                 .difficulty("Easy")
                 .explanation("Speed = 60 * (5/18) m/sec = 50/3 m/sec. Length of train = Speed * Time = (50/3) * 9 = 150 metres.")
                 .companyTag("TCS, Infosys, Wipro")
+                .build();
+
+        com.mockinterview.mock_interview.entity.Question q1b = com.mockinterview.mock_interview.entity.Question.builder()
+                .question("A train 240 m long passes a pole in 24 seconds. How long will it take to pass a platform 650 m long?")
+                .optionA("65 seconds")
+                .optionB("89 seconds")
+                .optionC("100 seconds")
+                .optionD("150 seconds")
+                .answer("89 seconds")
+                .category("Quantitative Aptitude")
+                .subCategory("Problems on Trains")
+                .questionType("MCQ")
+                .difficulty("Medium")
+                .explanation("Speed = 240 / 24 = 10 m/sec. Required time = (240 + 650) / 10 = 890 / 10 = 89 seconds.")
+                .companyTag("TCS, Infosys")
+                .build();
+
+        com.mockinterview.mock_interview.entity.Question q1c = com.mockinterview.mock_interview.entity.Question.builder()
+                .question("If 20% of an annual salary is saved, which is equal to ₹1,20,000, what is the monthly salary?")
+                .optionA("₹40,000")
+                .optionB("₹50,000")
+                .optionC("₹60,000")
+                .optionD("₹45,000")
+                .answer("₹50,000")
+                .category("Quantitative Aptitude")
+                .subCategory("Percentage")
+                .questionType("MCQ")
+                .difficulty("Easy")
+                .explanation("Annual salary = 1,20,000 / 0.20 = ₹6,00,000. Monthly salary = 6,00,000 / 12 = ₹50,000.")
+                .companyTag("Accenture, Wipro")
                 .build();
 
         com.mockinterview.mock_interview.entity.Question q2 = com.mockinterview.mock_interview.entity.Question.builder()
@@ -157,6 +217,21 @@ public class DataInitializer implements CommandLineRunner {
                 .difficulty("Easy")
                 .explanation("This is an alternating division series. In each step, the number is divided by 2. (1/4) / 2 = 1/8.")
                 .companyTag("TCS, Accenture, Cognizant")
+                .build();
+
+        com.mockinterview.mock_interview.entity.Question q2b = com.mockinterview.mock_interview.entity.Question.builder()
+                .question("Find the missing number in the series: 7, 10, 8, 11, 9, 12, ...")
+                .optionA("7")
+                .optionB("10")
+                .optionC("12")
+                .optionD("13")
+                .answer("10")
+                .category("Logical Reasoning")
+                .subCategory("Number Series")
+                .questionType("MCQ")
+                .difficulty("Easy")
+                .explanation("It is an alternating addition and subtraction series: +3, -2, +3, -2, +3, -2. So 12 - 2 = 10.")
+                .companyTag("Infosys, TCS")
                 .build();
 
         com.mockinterview.mock_interview.entity.Question q3 = com.mockinterview.mock_interview.entity.Question.builder()
@@ -189,7 +264,22 @@ public class DataInitializer implements CommandLineRunner {
                 .companyTag("Infosys, Oracle, Wipro")
                 .build();
 
-        questionRepository.saveAll(List.of(q1, q2, q3, q4));
+        com.mockinterview.mock_interview.entity.Question q5 = com.mockinterview.mock_interview.entity.Question.builder()
+                .question("Find the error in: 'Neither the teacher nor the students was present in the classroom.'")
+                .optionA("Neither the teacher")
+                .optionB("nor the students")
+                .optionC("was present")
+                .optionD("No error")
+                .answer("was present")
+                .category("Verbal Ability")
+                .subCategory("Spotting Errors")
+                .questionType("MCQ")
+                .difficulty("Easy")
+                .explanation("When subjects are connected by 'neither... nor', the verb agrees with the closer subject ('students' is plural, so 'were present').")
+                .companyTag("TCS, Cognizant")
+                .build();
+
+        questionRepository.saveAll(List.of(q1, q1b, q1c, q2, q2b, q3, q4, q5));
         System.out.println("✅ Initial questions seeded into database.");
     }
 }

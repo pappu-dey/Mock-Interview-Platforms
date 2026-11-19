@@ -13,6 +13,10 @@
 **/application-local.yml
 **/application-secret.properties
 **/application-secret.yml
+**/application-secrate.properties
+**/application-secrate.yml
+*application-secrate*
+*application-secret*
 
 # Keep the template, ignore the real one
 **/application.properties

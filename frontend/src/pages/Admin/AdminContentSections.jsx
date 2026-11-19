@@ -330,17 +330,17 @@ function CompanyForm({ form, setForm, errors }) {
 }
 
 export function CompaniesSection({ showToast }) {
-  const [items, setItems]     = useState(() => adminStore.get('companies'))
-  const [search, setSearch]   = useState('')
-  const [drawer, setDrawer]   = useState(null)   // null | 'add' | 'edit'
-  const [form, setForm]       = useState(COMPANY_DEFAULTS)
-  const [editId, setEditId]   = useState(null)
-  const [errors, setErrors]   = useState({})
+  const [items, setItems] = useState(() => adminStore.get('companies'))
+  const [search, setSearch] = useState('')
+  const [drawer, setDrawer] = useState(null)   // null | 'add' | 'edit'
+  const [form, setForm] = useState(COMPANY_DEFAULTS)
+  const [editId, setEditId] = useState(null)
+  const [errors, setErrors] = useState({})
   const [delItem, setDelItem] = useState(null)
 
   const fetchCompanies = async () => {
     try {
-      const res = await fetch('http://localhost:8080/api/companies')
+      const res = await fetch('https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/companies')
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data)) {
@@ -452,8 +452,8 @@ export function CompaniesSection({ showToast }) {
 
     try {
       const url = drawer === 'add'
-        ? 'http://localhost:8080/api/companies'
-        : `http://localhost:8080/api/companies/${editId}`
+        ? 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/companies'
+        : `https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/companies/${editId}`
 
       const method = drawer === 'add' ? 'POST' : 'PUT'
 
@@ -499,7 +499,7 @@ export function CompaniesSection({ showToast }) {
     if (delItem) {
       const targetId = delItem.companyId || delItem.id
       try {
-        await fetch(`http://localhost:8080/api/companies/${targetId}`, { method: 'DELETE' })
+        await fetch(`https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/companies/${targetId}`, { method: 'DELETE' })
         showToast('Company deleted from database')
         fetchCompanies()
       } catch (err) {
@@ -554,7 +554,7 @@ export function CompaniesSection({ showToast }) {
                   <td>
                     <div className="cm-row-actions">
                       <button className="cm-action-btn edit" title="Edit" onClick={() => openEdit(c)}>✏️</button>
-                      <button className="cm-action-btn del"  title="Delete" onClick={() => handleDelete(c)}>🗑️</button>
+                      <button className="cm-action-btn del" title="Delete" onClick={() => handleDelete(c)}>🗑️</button>
                     </div>
                   </td>
                 </tr>
@@ -709,12 +709,12 @@ function McqTopicForm({ form, setForm, errors }) {
 }
 
 function McqSection({ storeKey, icon, title, subtitle, category, showToast }) {
-  const [items, setItems]     = useState(() => adminStore.get(storeKey))
-  const [search, setSearch]   = useState('')
-  const [drawer, setDrawer]   = useState(null)
-  const [form, setForm]       = useState(MCQ_DEFAULTS(category))
-  const [editId, setEditId]   = useState(null)
-  const [errors, setErrors]   = useState({})
+  const [items, setItems] = useState(() => adminStore.get(storeKey))
+  const [search, setSearch] = useState('')
+  const [drawer, setDrawer] = useState(null)
+  const [form, setForm] = useState(MCQ_DEFAULTS(category))
+  const [editId, setEditId] = useState(null)
+  const [errors, setErrors] = useState({})
   const [delItem, setDelItem] = useState(null)
 
   useEffect(() => adminStore.subscribe(storeKey, () => setItems(adminStore.get(storeKey))), [storeKey])
@@ -794,7 +794,7 @@ function McqSection({ storeKey, icon, title, subtitle, category, showToast }) {
                   <td>
                     <div className="cm-row-actions">
                       <button className="cm-action-btn edit" onClick={() => openEdit(t)}>✏️</button>
-                      <button className="cm-action-btn del"  onClick={() => setDelItem(t)}>🗑️</button>
+                      <button className="cm-action-btn del" onClick={() => setDelItem(t)}>🗑️</button>
                     </div>
                   </td>
                 </tr>
@@ -868,20 +868,20 @@ function InterviewQForm({ form, setForm, errors, categories }) {
 }
 
 function InterviewQSection({ storeKey, icon, title, subtitle, categories, defaultCategory, showToast }) {
-  const [items, setItems]     = useState(() => adminStore.get(storeKey))
-  const [search, setSearch]   = useState('')
+  const [items, setItems] = useState(() => adminStore.get(storeKey))
+  const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('All')
-  const [drawer, setDrawer]   = useState(null)
-  const [form, setForm]       = useState({ question: '', category: defaultCategory, difficulty: 'Medium', answer: '' })
-  const [editId, setEditId]   = useState(null)
-  const [errors, setErrors]   = useState({})
+  const [drawer, setDrawer] = useState(null)
+  const [form, setForm] = useState({ question: '', category: defaultCategory, difficulty: 'Medium', answer: '' })
+  const [editId, setEditId] = useState(null)
+  const [errors, setErrors] = useState({})
   const [delItem, setDelItem] = useState(null)
 
   useEffect(() => adminStore.subscribe(storeKey, () => setItems(adminStore.get(storeKey))), [storeKey])
 
   const filtered = items.filter(q => {
     const matchSearch = q.question?.toLowerCase().includes(search.toLowerCase()) || q.answer?.toLowerCase().includes(search.toLowerCase())
-    const matchCat    = filterCat === 'All' || q.category === filterCat
+    const matchCat = filterCat === 'All' || q.category === filterCat
     return matchSearch && matchCat
   })
 
@@ -934,8 +934,8 @@ function InterviewQSection({ storeKey, icon, title, subtitle, categories, defaul
               fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
               transition: 'all 0.2s ease',
               background: filterCat === cat ? 'rgba(228,161,106,0.12)' : 'var(--ad-glass)',
-              color:      filterCat === cat ? 'var(--ad-accent)'        : 'var(--ad-text-2)',
-              borderColor:filterCat === cat ? 'rgba(228,161,106,0.25)'  : 'var(--ad-glass-bd)',
+              color: filterCat === cat ? 'var(--ad-accent)' : 'var(--ad-text-2)',
+              borderColor: filterCat === cat ? 'rgba(228,161,106,0.25)' : 'var(--ad-glass-bd)',
             }}
           >
             {cat}
@@ -971,7 +971,7 @@ function InterviewQSection({ storeKey, icon, title, subtitle, categories, defaul
                   <td>
                     <div className="cm-row-actions">
                       <button className="cm-action-btn edit" onClick={() => openEdit(q)}>✏️</button>
-                      <button className="cm-action-btn del"  onClick={() => setDelItem(q)}>🗑️</button>
+                      <button className="cm-action-btn del" onClick={() => setDelItem(q)}>🗑️</button>
                     </div>
                   </td>
                 </tr>
@@ -1345,18 +1345,18 @@ function QuestionDetailModal({ item, onClose, onEdit }) {
 }
 
 export function QuestionsBankSection({ showToast, initialOpenAdd = false, onResetInitialOpenAdd }) {
-  const [items, setItems]               = useState(() => adminStore.get('allQuestions'))
-  const [search, setSearch]             = useState('')
-  const [filterCat, setFilterCat]       = useState('All')
-  const [filterDiff, setFilterDiff]     = useState('All')
-  const [filterType, setFilterType]     = useState('All')
-  const [drawer, setDrawer]             = useState(initialOpenAdd ? 'add' : null)
-  const [form, setForm]                 = useState(QUESTION_DEFAULTS)
-  const [editId, setEditId]             = useState(null)
-  const [errors, setErrors]             = useState({})
-  const [delItem, setDelItem]           = useState(null)
-  const [detailItem, setDetailItem]     = useState(null)
-  const [isSyncing, setIsSyncing]       = useState(false)
+  const [items, setItems] = useState(() => adminStore.get('allQuestions'))
+  const [search, setSearch] = useState('')
+  const [filterCat, setFilterCat] = useState('All')
+  const [filterDiff, setFilterDiff] = useState('All')
+  const [filterType, setFilterType] = useState('All')
+  const [drawer, setDrawer] = useState(initialOpenAdd ? 'add' : null)
+  const [form, setForm] = useState(QUESTION_DEFAULTS)
+  const [editId, setEditId] = useState(null)
+  const [errors, setErrors] = useState({})
+  const [delItem, setDelItem] = useState(null)
+  const [detailItem, setDetailItem] = useState(null)
+  const [isSyncing, setIsSyncing] = useState(false)
 
   // Sync if opened via topbar "+ Add Question"
   useEffect(() => {
@@ -1372,7 +1372,7 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
   const fetchQuestions = useCallback(async () => {
     setIsSyncing(true)
     try {
-      const res = await fetch('http://localhost:8080/api/questions')
+      const res = await fetch('https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions')
       if (res.ok) {
         const data = await res.json()
         if (Array.isArray(data)) {
@@ -1412,11 +1412,11 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
   const filtered = items.filter(q => {
     const s = search.toLowerCase()
     const matchSearch = (q.question || '').toLowerCase().includes(s) ||
-                        (q.explanation || '').toLowerCase().includes(s) ||
-                        (q.company_tag || '').toLowerCase().includes(s) ||
-                        (q.sub_category || '').toLowerCase().includes(s) ||
-                        (q.answer || '').toLowerCase().includes(s)
-    const matchCat  = filterCat === 'All'  || q.category === filterCat
+      (q.explanation || '').toLowerCase().includes(s) ||
+      (q.company_tag || '').toLowerCase().includes(s) ||
+      (q.sub_category || '').toLowerCase().includes(s) ||
+      (q.answer || '').toLowerCase().includes(s)
+    const matchCat = filterCat === 'All' || q.category === filterCat
     const matchDiff = filterDiff === 'All' || (q.difficulty || '').toLowerCase() === filterDiff.toLowerCase()
     const matchType = filterType === 'All' || (q.question_type || '').toLowerCase() === filterType.toLowerCase()
     return matchSearch && matchCat && matchDiff && matchType
@@ -1478,8 +1478,8 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
 
     try {
       const url = drawer === 'add'
-        ? 'http://localhost:8080/api/questions'
-        : `http://localhost:8080/api/questions/${editId}`
+        ? 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions'
+        : `https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions/${editId}`
 
       const method = drawer === 'add' ? 'POST' : 'PUT'
 
@@ -1520,7 +1520,7 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
     if (delItem) {
       const targetId = delItem.id
       try {
-        await fetch(`http://localhost:8080/api/questions/${targetId}`, { method: 'DELETE' })
+        await fetch(`https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions/${targetId}`, { method: 'DELETE' })
         showToast('Question deleted from database')
         fetchQuestions()
       } catch (err) {
@@ -1703,7 +1703,7 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
                       <div className="cm-row-actions">
                         <button className="cm-action-btn view" title="View details" onClick={() => setDetailItem(q)}>👁️</button>
                         <button className="cm-action-btn edit" title="Edit question" onClick={() => openEdit(q)}>✏️</button>
-                        <button className="cm-action-btn del"  title="Delete question" onClick={() => setDelItem(q)}>🗑️</button>
+                        <button className="cm-action-btn del" title="Delete question" onClick={() => setDelItem(q)}>🗑️</button>
                       </div>
                     </td>
                   </tr>

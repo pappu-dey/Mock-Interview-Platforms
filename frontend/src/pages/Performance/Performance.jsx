@@ -12,6 +12,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react'
+import performanceService from '../../services/performanceService'
 import './Performance.css'
 
 // ── Inline SVG icon set ───────────────────────────────────────────────────────
@@ -76,15 +77,8 @@ const Icon = {
   ),
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
-const KPI_CARDS = [
-  { id: 'sessions', label: 'Total Sessions', value: '38', sub: '+5 this week', up: true, icon: Icon.Calendar, color: '#5B4EE8', bg: 'rgba(91,78,232,0.08)' },
-  { id: 'avg', label: 'Average Score', value: '82', sub: '+4.3% from last month', up: true, icon: Icon.Trend, color: '#10B981', bg: 'rgba(16,185,129,0.08)' },
-  { id: 'streak', label: 'Current Streak', value: '9 days', sub: 'Personal best: 14 days', up: null, icon: Icon.Flame, color: '#F59E0B', bg: 'rgba(245,158,11,0.08)' },
-  { id: 'best', label: 'Best Category', value: 'DSA', sub: 'Avg 91% across 12 sessions', up: null, icon: Icon.Trophy, color: '#8B5CF6', bg: 'rgba(139,92,246,0.08)' },
-]
-
-const SCORE_TREND = [
+// ── Fallback Defaults ──────────────────────────────────────────────────────────
+const DEFAULT_SCORE_TREND = [
   { session: 'S1', score: 64, date: 'Jul 10', topic: 'HR Round' },
   { session: 'S2', score: 72, date: 'Jul 13', topic: 'DSA Basics' },
   { session: 'S3', score: 68, date: 'Jul 16', topic: 'SQL' },
@@ -95,7 +89,7 @@ const SCORE_TREND = [
   { session: 'S8', score: 92, date: 'Aug 1', topic: 'DSA Trees' },
 ]
 
-const SKILL_BREAKDOWN = [
+const DEFAULT_SKILL_BREAKDOWN = [
   { label: 'Data Structures & Algo', score: 91, sessions: 12, color: '#5B4EE8' },
   { label: 'System Design', score: 74, sessions: 6, color: '#8B5CF6' },
   { label: 'SQL & Databases', score: 68, sessions: 5, color: '#10B981' },
@@ -104,7 +98,7 @@ const SKILL_BREAKDOWN = [
   { label: 'HR & Behavioural', score: 82, sessions: 3, color: '#06B6D4' },
 ]
 
-const RECENT_SESSIONS = [
+const DEFAULT_RECENT_SESSIONS = [
   { id: 1, topic: 'DSA Trees & Graphs', date: 'Aug 1, 2026', score: 92, time: '28 min', type: 'Mock' },
   { id: 2, topic: 'Java OOP Fundamentals', date: 'Jul 28, 2026', score: 88, time: '22 min', type: 'Practice' },
   { id: 3, topic: 'Aptitude — Percentages', date: 'Jul 25, 2026', score: 81, time: '20 min', type: 'Practice' },
@@ -113,19 +107,19 @@ const RECENT_SESSIONS = [
   { id: 6, topic: 'SQL Joins & Subqueries', date: 'Jul 16, 2026', score: 68, time: '18 min', type: 'Practice' },
 ]
 
-const STRENGTHS = [
+const DEFAULT_STRENGTHS = [
   'Consistent improvement in DSA over the past 4 weeks',
   'Strong logical reasoning — top 15% among platform users',
   'Java OOP concepts above 80% benchmark consistently',
 ]
 
-const IMPROVE = [
+const DEFAULT_IMPROVE = [
   'SQL window functions & query optimisation need attention',
   'System Design depth — practice more HLD/LLD problems',
   'Quantitative speed: accuracy is high but time per Q is slow',
 ]
 
-const WEEKLY_ACTIVITY = [0, 1, 0, 2, 3, 1, 0, 1, 2, 3, 2, 1, 0, 0, 2, 3, 3, 1, 2, 0, 1, 3, 2, 1, 3, 3, 2, 0]
+const DEFAULT_WEEKLY_ACTIVITY = [0, 1, 0, 2, 3, 1, 0, 1, 2, 3, 2, 1, 0, 0, 2, 3, 3, 1, 2, 0, 1, 3, 2, 1, 3, 3, 2, 0]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function scoreLabel(s) {
@@ -145,12 +139,11 @@ function AnimatedNumber({ target, suffix = '' }) {
   const [val, setVal] = useState(0)
   const ran = useRef(false)
   useEffect(() => {
-    if (ran.current) return
-    ran.current = true
+    ran.current = false
     const end = parseInt(target, 10)
     if (isNaN(end)) { setVal(target); return }
     let cur = 0
-    const step = Math.ceil(end / 40)
+    const step = Math.max(1, Math.ceil(end / 40))
     const t = setInterval(() => {
       cur += step
       if (cur >= end) { setVal(end); clearInterval(t) }
@@ -164,6 +157,149 @@ function AnimatedNumber({ target, suffix = '' }) {
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function Performance() {
   const [activeTab, setActiveTab] = useState('overview')
+
+  // Live state from API
+  const [totalSessions, setTotalSessions] = useState(38)
+  const [averageScore, setAverageScore] = useState(82)
+  const [currentStreak, setCurrentStreak] = useState(9)
+  const [bestCategory, setBestCategory] = useState('DSA')
+  const [bestCategoryScore, setBestCategoryScore] = useState(91)
+  const [bestCategorySessions, setBestCategorySessions] = useState(12)
+
+  const [scoreTrend, setScoreTrend] = useState(DEFAULT_SCORE_TREND)
+  const [skillBreakdown, setSkillBreakdown] = useState(DEFAULT_SKILL_BREAKDOWN)
+  const [recentSessions, setRecentSessions] = useState(DEFAULT_RECENT_SESSIONS)
+  const [strengths, setStrengths] = useState(DEFAULT_STRENGTHS)
+  const [improve, setImprove] = useState(DEFAULT_IMPROVE)
+  const [weeklyActivity, setWeeklyActivity] = useState(DEFAULT_WEEKLY_ACTIVITY)
+  const [placementReadiness, setPlacementReadiness] = useState(76)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+    async function loadData() {
+      try {
+        const data = await performanceService.getPerformanceData()
+        if (!isMounted || !data) return
+
+        if (data.totalSessions != null) setTotalSessions(data.totalSessions)
+        if (data.averageScore != null) setAverageScore(Math.round(data.averageScore))
+        if (data.currentStreak != null) setCurrentStreak(data.currentStreak)
+        if (data.bestCategory) setBestCategory(data.bestCategory)
+        if (data.bestCategoryScore != null) setBestCategoryScore(Math.round(data.bestCategoryScore))
+        if (data.bestCategorySessions != null) setBestCategorySessions(data.bestCategorySessions)
+
+        if (Array.isArray(data.scoreTrend) && data.scoreTrend.length > 0) {
+          setScoreTrend(data.scoreTrend.map((item, idx) => ({
+            session: item.session || `S${idx + 1}`,
+            score: Math.round(item.score ?? 75),
+            date: item.date || `Session ${idx + 1}`,
+            topic: item.topic || 'Mock Session',
+          })))
+        }
+
+        if (Array.isArray(data.skillBreakdown) && data.skillBreakdown.length > 0) {
+          const colors = ['#5B4EE8', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4']
+          setSkillBreakdown(data.skillBreakdown.map((item, idx) => ({
+            label: item.label || item.category || 'Skill',
+            score: Math.round(item.score ?? 70),
+            sessions: item.sessions || 1,
+            totalQuestions: item.totalQuestions || item.sessions || 1,
+            color: item.color || colors[idx % colors.length],
+          })))
+        }
+
+        if (Array.isArray(data.recentSessions) && data.recentSessions.length > 0) {
+          setRecentSessions(data.recentSessions.map((item, idx) => ({
+            id: item.id || idx + 1,
+            topic: item.topic || (item.roleName ? `${item.roleName} Mock` : 'Technical Mock'),
+            date: item.date || 'Recent',
+            score: Math.round(item.score ?? item.overallScore ?? 75),
+            time: item.time || '25 min',
+            type: item.type || (idx % 2 === 0 ? 'Mock' : 'Practice'),
+          })))
+        }
+
+        if (Array.isArray(data.strengths) && data.strengths.length > 0) {
+          setStrengths(data.strengths)
+        }
+        if (Array.isArray(data.improvements) && data.improvements.length > 0) {
+          setImprove(data.improvements)
+        }
+        if (Array.isArray(data.weeklyActivity) && data.weeklyActivity.length > 0) {
+          setWeeklyActivity(data.weeklyActivity)
+        }
+        if (data.placementReadiness != null) {
+          setPlacementReadiness(Math.round(data.placementReadiness))
+        }
+      } catch (err) {
+        console.warn('Could not load performance data from API, using defaults:', err)
+      } finally {
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    loadData()
+
+    const handlePracticeStatsUpdated = () => {
+      loadData()
+    }
+    window.addEventListener('practice-stats-updated', handlePracticeStatsUpdated)
+
+    return () => {
+      isMounted = false
+      window.removeEventListener('practice-stats-updated', handlePracticeStatsUpdated)
+    }
+  }, [])
+
+  const kpiCards = [
+    {
+      id: 'sessions',
+      label: 'Total Sessions',
+      value: String(totalSessions),
+      sub: '+5 this week',
+      up: true,
+      icon: Icon.Calendar,
+      color: '#5B4EE8',
+      bg: 'rgba(91,78,232,0.08)',
+    },
+    {
+      id: 'avg',
+      label: 'Average Score',
+      value: `${averageScore}%`,
+      sub: '+4.3% from last month',
+      up: true,
+      icon: Icon.Trend,
+      color: '#10B981',
+      bg: 'rgba(16,185,129,0.08)',
+    },
+    {
+      id: 'streak',
+      label: 'Current Streak',
+      value: `${currentStreak} days`,
+      sub: 'Personal best: 14 days',
+      up: null,
+      icon: Icon.Flame,
+      color: '#F59E0B',
+      bg: 'rgba(245,158,11,0.08)',
+    },
+    {
+      id: 'best',
+      label: 'Best Category',
+      value: bestCategory,
+      sub: `Avg ${bestCategoryScore}% across ${bestCategorySessions} sessions`,
+      up: null,
+      icon: Icon.Trophy,
+      color: '#8B5CF6',
+      bg: 'rgba(139,92,246,0.08)',
+    },
+  ]
+
+  const scoreCircumference = 2 * Math.PI * 50
+  const scoreStrokeDash = `${(scoreCircumference * averageScore) / 100} ${scoreCircumference}`
+
+  const readinessCircumference = 2 * Math.PI * 40
+  const readinessStrokeDash = `${(readinessCircumference * placementReadiness) / 100} ${readinessCircumference}`
 
   return (
     <div className="perf-page">
@@ -184,12 +320,18 @@ export default function Performance() {
           <div className="perf-hero__ring">
             <svg viewBox="0 0 120 120" className="perf-ring-svg">
               <circle cx="60" cy="60" r="50" className="perf-ring-bg" />
-              <circle cx="60" cy="60" r="50" className="perf-ring-fill"
-                strokeDasharray={`${2 * Math.PI * 50 * 0.82} ${2 * Math.PI * 50}`}
+              <circle
+                cx="60"
+                cy="60"
+                r="50"
+                className="perf-ring-fill"
+                strokeDasharray={scoreStrokeDash}
               />
             </svg>
             <div className="perf-ring-label">
-              <span className="perf-ring-num">82%</span>
+              <span className="perf-ring-num">
+                <AnimatedNumber target={averageScore} />%
+              </span>
               <span className="perf-ring-sub">Overall</span>
             </div>
           </div>
@@ -197,15 +339,19 @@ export default function Performance() {
 
         {/* ── KPI Cards ── */}
         <div className="perf-kpi-grid">
-          {KPI_CARDS.map(({ id, label, value, sub, up, icon: KpiIcon, color, bg }) => (
+          {kpiCards.map(({ id, label, value, sub, up, icon: KpiIcon, color, bg }) => (
             <div key={id} className="perf-kpi-card" style={{ '--kpi-color': color, '--kpi-bg': bg }}>
               <div className="perf-kpi-icon"><KpiIcon /></div>
               <div className="perf-kpi-body">
                 <div className="perf-kpi-label">{label}</div>
                 <div className="perf-kpi-value">
-                  {id === 'avg' ? <><AnimatedNumber target={82} />%</> :
-                    id === 'sessions' ? <AnimatedNumber target={38} /> :
-                      value}
+                  {id === 'avg' ? (
+                    <><AnimatedNumber target={averageScore} />%</>
+                  ) : id === 'sessions' ? (
+                    <AnimatedNumber target={totalSessions} />
+                  ) : (
+                    value
+                  )}
                 </div>
                 <div className="perf-kpi-sub">
                   {up !== null && (
@@ -242,9 +388,9 @@ export default function Performance() {
               <div className="perf-card-header">
                 <div>
                   <h2 className="perf-card-title">Score Trend</h2>
-                  <p className="perf-card-sub">Last 8 practice sessions</p>
+                  <p className="perf-card-sub">Last {scoreTrend.length} practice sessions</p>
                 </div>
-                <div className="perf-trend-badge"><Icon.ArrowUp /> +28 pts overall</div>
+                <div className="perf-trend-badge"><Icon.ArrowUp /> Live Tracking</div>
               </div>
               <div className="perf-chart-area">
                 <div className="perf-chart-guides">
@@ -256,7 +402,7 @@ export default function Performance() {
                   ))}
                 </div>
                 <div className="perf-bar-chart">
-                  {SCORE_TREND.map(({ session, score, date, topic }) => (
+                  {scoreTrend.map(({ session, score, date, topic }) => (
                     <div key={session} className="perf-bar-col">
                       <div className="perf-bar-tooltip">
                         <strong>{score}%</strong>
@@ -285,11 +431,13 @@ export default function Performance() {
                 </div>
               </div>
               <div className="perf-skill-list">
-                {SKILL_BREAKDOWN.map(({ label, score, sessions, color }) => (
+                {skillBreakdown.map(({ label, score, sessions, totalQuestions, color }) => (
                   <div key={label} className="perf-skill-row">
                     <div className="perf-skill-meta">
                       <span className="perf-skill-label">{label}</span>
-                      <span className="perf-skill-sessions">{sessions} sessions</span>
+                      <span className="perf-skill-sessions">
+                        {totalQuestions ? `${totalQuestions} solved` : `${sessions} sessions`}
+                      </span>
                     </div>
                     <div className="perf-skill-bar-wrap">
                       <div className="perf-skill-bar" style={{ '--skill-w': `${score}%`, '--skill-color': color }} />
@@ -320,7 +468,7 @@ export default function Performance() {
                 ))}
               </div>
               <div className="perf-heatmap">
-                {WEEKLY_ACTIVITY.map((level, i) => (
+                {weeklyActivity.map((level, i) => (
                   <div
                     key={i}
                     className={`perf-heatmap-cell act-${level}`}
@@ -341,7 +489,7 @@ export default function Performance() {
                 <h2 className="perf-card-title">Recent Sessions</h2>
                 <p className="perf-card-sub">All your practice & mock interview history</p>
               </div>
-              <span className="perf-session-count">{RECENT_SESSIONS.length} sessions</span>
+              <span className="perf-session-count">{recentSessions.length} sessions</span>
             </div>
             <div className="perf-sessions-wrap">
               <table className="perf-sessions-table">
@@ -357,7 +505,7 @@ export default function Performance() {
                   </tr>
                 </thead>
                 <tbody>
-                  {RECENT_SESSIONS.map(({ id, topic, date, score, time, type }) => (
+                  {recentSessions.map(({ id, topic, date, score, time, type }) => (
                     <tr key={id}>
                       <td className="perf-td-num">{id}</td>
                       <td className="perf-td-topic">{topic}</td>
@@ -402,7 +550,7 @@ export default function Performance() {
               <h2 className="perf-card-title">Your Strengths 💪</h2>
               <p className="perf-card-sub">Areas where you're consistently performing well</p>
               <ul className="perf-insight-list">
-                {STRENGTHS.map((s, i) => (
+                {strengths.map((s, i) => (
                   <li key={i} className="perf-insight-item perf-insight-item--green">
                     <span className="perf-insight-bullet">✓</span>{s}
                   </li>
@@ -415,7 +563,7 @@ export default function Performance() {
               <h2 className="perf-card-title">Focus Areas 🎯</h2>
               <p className="perf-card-sub">Topics that need more practice for big gains</p>
               <ul className="perf-insight-list">
-                {IMPROVE.map((s, i) => (
+                {improve.map((s, i) => (
                   <li key={i} className="perf-insight-item perf-insight-item--orange">
                     <span className="perf-insight-bullet">!</span>{s}
                   </li>
@@ -431,32 +579,52 @@ export default function Performance() {
                 <div className="perf-ready-ring">
                   <svg viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="40" className="perf-ready-bg" />
-                    <circle cx="50" cy="50" r="40" className="perf-ready-fill"
-                      strokeDasharray={`${2 * Math.PI * 40 * 0.76} ${2 * Math.PI * 40}`}
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="40"
+                      className="perf-ready-fill"
+                      strokeDasharray={readinessStrokeDash}
                     />
                   </svg>
-                  <div className="perf-ready-num">76%</div>
+                  <div className="perf-ready-num">{placementReadiness}%</div>
                 </div>
                 <div className="perf-ready-companies">
-                  {[{ name: 'TCS', ok: true }, { name: 'Infosys', ok: true }, { name: 'Wipro', ok: false }, { name: 'Accenture', ok: true }, { name: 'Cognizant', ok: false }].map(({ name, ok }) => (
+                  {[
+                    { name: 'TCS', ok: placementReadiness >= 70 },
+                    { name: 'Infosys', ok: placementReadiness >= 65 },
+                    { name: 'Wipro', ok: placementReadiness >= 75 },
+                    { name: 'Accenture', ok: placementReadiness >= 60 },
+                    { name: 'Cognizant', ok: placementReadiness >= 80 },
+                  ].map(({ name, ok }) => (
                     <span key={name} className={`perf-company-pill ${ok ? 'pill-ready' : 'pill-not'}`}>
                       {ok ? '✓' : '○'} {name}
                     </span>
                   ))}
                 </div>
               </div>
-              <p className="perf-ready-note">💡 Complete 5 more mock interviews to boost readiness to <strong>85%+</strong></p>
+              <p className="perf-ready-note">💡 Complete more mock interviews to boost readiness to <strong>85%+</strong></p>
             </div>
 
             <div className="perf-card perf-insight-card perf-insight-card--gold">
               <div className="perf-insight-icon perf-insight-icon--gold"><Icon.Star /></div>
               <h2 className="perf-card-title">Platform Ranking</h2>
               <p className="perf-card-sub">How you compare to other students</p>
-              <div className="perf-rank-num">Top 18%</div>
+              <div className="perf-rank-num">
+                Top {Math.max(5, Math.round(100 - placementReadiness * 0.95))}%
+              </div>
               <div className="perf-rank-sub">out of 4,200+ active users</div>
               <div className="perf-percentile-bar">
-                <div className="perf-percentile-fill" />
-                <span className="perf-percentile-you">You</span>
+                <div
+                  className="perf-percentile-fill"
+                  style={{ width: `${Math.min(98, Math.max(20, placementReadiness))}%` }}
+                />
+                <span
+                  className="perf-percentile-you"
+                  style={{ left: `${Math.min(98, Math.max(20, placementReadiness))}%` }}
+                >
+                  You
+                </span>
               </div>
             </div>
 

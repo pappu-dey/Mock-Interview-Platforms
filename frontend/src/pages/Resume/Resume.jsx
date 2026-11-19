@@ -224,7 +224,7 @@ export default function Resume() {
     setAnalyzing(true)
     setErrorMsg('')
 
-    const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+    const BACKEND_URL = import.meta.env.VITE_API_BASE_URL || 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io'
     const token = localStorage.getItem('jwt_token')
 
     try {

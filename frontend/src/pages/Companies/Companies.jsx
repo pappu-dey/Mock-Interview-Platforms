@@ -296,7 +296,7 @@ export default function Companies() {
 
   // Fetch companies from Spring Boot Backend
   React.useEffect(() => {
-    fetch('http://localhost:8080/api/companies')
+    fetch('https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/companies')
       .then(res => {
         if (!res.ok) throw new Error('API offline')
         return res.json()
@@ -314,8 +314,8 @@ export default function Companies() {
             hq: c.headquarters || 'N/A',
             employees: c.employees || '1,000+',
             website: c.companyWebsite || '',
-            roles: (c.jobRoles && c.jobRoles.length > 0) 
-              ? c.jobRoles.map(r => r.roleName) 
+            roles: (c.jobRoles && c.jobRoles.length > 0)
+              ? c.jobRoles.map(r => r.roleName)
               : ['Software Engineer'],
             salaryRange: (c.jobRoles && c.jobRoles[0]?.salary) || '₹5.0L – ₹12.0L',
             difficulty: c.difficulty || 'Medium',
@@ -325,12 +325,12 @@ export default function Companies() {
             hired: 'Campus Hires',
             rounds: (c.jobRoles && c.jobRoles[0]?.hiringProcesses && c.jobRoles[0].hiringProcesses.length > 0)
               ? c.jobRoles[0].hiringProcesses.map(hp => ({
-                  name: hp.roundName,
-                  type: (hp.roundName || '').toLowerCase().includes('hr') ? 'hr' : (hp.roundName || '').toLowerCase().includes('aptitude') ? 'aptitude' : 'technical',
-                  desc: hp.description
-                }))
+                name: hp.roundName,
+                type: (hp.roundName || '').toLowerCase().includes('hr') ? 'hr' : (hp.roundName || '').toLowerCase().includes('aptitude') ? 'aptitude' : 'technical',
+                desc: hp.description
+              }))
               : [{ name: 'Technical Screening', type: 'technical', desc: 'Coding and fundamentals' }],
-            topics: (c.jobRoles && c.jobRoles[0]?.technicalTopics) 
+            topics: (c.jobRoles && c.jobRoles[0]?.technicalTopics)
               ? c.jobRoles[0].technicalTopics.split(',').map(t => t.trim())
               : ['Java', 'DSA', 'SQL'],
             tip: c.insiderTips || 'Focus on core programming skills and problem solving.',
