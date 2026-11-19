@@ -29,8 +29,8 @@ public class SecurityConfig {
     private final PasswordEncoder passwordEncoder;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter,
-                          CustomUserDetailsService customUserDetailsService,
-                          PasswordEncoder passwordEncoder) {
+            CustomUserDetailsService customUserDetailsService,
+            PasswordEncoder passwordEncoder) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.customUserDetailsService = customUserDetailsService;
         this.passwordEncoder = passwordEncoder;
@@ -53,13 +53,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/questions/**").permitAll()
                         .requestMatchers("/api/practice/**").permitAll()
                         // Everything else requires a valid JWT
-                        .anyRequest().authenticated()
-                )
+                        .anyRequest().authenticated())
 
                 // Stateless session — no HttpSession, no cookies
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // Our custom provider wires DB lookup + BCrypt
                 .authenticationProvider(authenticationProvider())
@@ -78,7 +75,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:5174"));
+        config.setAllowedOrigins(List.of("https://mock-interview-platforms.vercel.app/",
+                "https://mock-interview-platforms.vercel.app/"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
