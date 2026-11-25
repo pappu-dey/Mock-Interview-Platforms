@@ -14,6 +14,12 @@ public class PerformanceDto {
     private int totalSessions;
     private double averageScore;
     private int currentStreak;
+    private int longestStreak;
+    private int totalActiveDays;
+    private int totalAttempted;
+    private int totalSolved;
+    private int totalQuestionsInBank;
+    private double accuracyPercentage;
     private String bestCategory;
     private double bestCategoryScore;
     private int bestCategorySessions;

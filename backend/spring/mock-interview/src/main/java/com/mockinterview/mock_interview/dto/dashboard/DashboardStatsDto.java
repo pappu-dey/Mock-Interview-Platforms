@@ -12,5 +12,9 @@ public class DashboardStatsDto {
     private double averageScore;
     private int questionsSolved;
     private int currentStreak;
+    private int longestStreak;
+    private int totalActiveDays;
+    private int mockTestsCompleted;
+    private int totalActivities;
     private String weeklyChange;
 }

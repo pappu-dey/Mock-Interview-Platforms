@@ -64,8 +64,31 @@ CREATE TABLE IF NOT EXISTS `daily_activity` (
   `activity_date` DATE NOT NULL,
   `sessions_count` INT DEFAULT 0,
   `questions_solved` INT DEFAULT 0,
+  `mock_tests_completed` INT DEFAULT 0,
+  `total_activities` INT DEFAULT 0,
+  `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`activity_id`),
   UNIQUE KEY `uk_user_activity_date` (`user_id`, `activity_date`),
   KEY `idx_activity_user_id` (`user_id`),
   CONSTRAINT `fk_activity_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- 5. Table structure for `user_question_progress` (Per-user solved/attempted status)
+CREATE TABLE IF NOT EXISTS `user_question_progress` (
+  `id` BIGINT NOT NULL AUTO_INCREMENT,
+  `user_id` INT NOT NULL,
+  `question_id` BIGINT NOT NULL,
+  `category` VARCHAR(100) DEFAULT NULL,
+  `topic` VARCHAR(150) DEFAULT NULL,
+  `status` VARCHAR(20) DEFAULT 'SOLVED',
+  `is_correct` TINYINT(1) DEFAULT NULL,
+  `selected_option` TEXT DEFAULT NULL,
+  `score` DECIMAL(5,2) DEFAULT NULL,
+  `solved_at` DATETIME DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_user_question` (`user_id`, `question_id`),
+  KEY `idx_uqp_user_id` (`user_id`),
+  KEY `idx_uqp_question_id` (`question_id`),
+  CONSTRAINT `fk_uqp_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

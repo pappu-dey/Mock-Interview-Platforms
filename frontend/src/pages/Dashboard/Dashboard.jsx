@@ -115,34 +115,14 @@ const Icon = {
   ),
 };
 
-// ---- fallback data (used while loading or on API error) ----
-const DEFAULT_STATS = [
-  { title: "Total Interviews", number: "12", change: "+3 this wk", icon: Icon.Users },
-  { title: "Average Score", number: "85%", change: "+5.2%", icon: Icon.Trend },
-  { title: "Questions Solved", number: "120", change: "+18 solved", icon: Icon.Book },
-  { title: "Daily Streak", number: "5 Days", change: "🔥 Active", icon: Icon.Flame },
-];
-
-const DEFAULT_CHART_DATA = [
-  { label: "Java", height: 52, color: "var(--accent-light)" },
-  { label: "DSA", height: 78, color: "var(--accent)" },
-  { label: "SQL", height: 64, color: "#EFE2D3" },
-  { label: "System", height: 90, color: "#C97F4A" },
-  { label: "HR", height: 45, color: "var(--accent-light)" },
-  { label: "Behav.", height: 70, color: "var(--accent)" },
-];
-
-const DEFAULT_COMPANIES = [
-  { name: "TCS", role: "Software Engineer", readiness: 82, status: "Ready", logoBg: "#3C6FBB", initials: "TCS" },
-  { name: "Infosys", role: "Systems Engineer", readiness: 67, status: "In Progress", logoBg: "#1C6DB0", initials: "IN" },
-  { name: "Wipro", role: "Project Engineer", readiness: 54, status: "In Progress", logoBg: "#5B2B82", initials: "WI" },
-  { name: "Accenture", role: "Associate Developer", readiness: 90, status: "Ready", logoBg: "#7C2A8C", initials: "AC" },
-];
-
-const DEFAULT_MEETINGS = [
-  { title: "Technical Mock Interview", subtitle: "with Ananya Kapoor", time: "3:00 PM", initials: "TM", color: "#C97F4A" },
-  { title: "HR Round Practice", subtitle: "with Rahul Mehta", time: "6:30 PM", initials: "HR", color: "#E4A16A" },
-  { title: "SQL Quiz Review", subtitle: "Self-paced", time: "Tomorrow", initials: "SQ", color: "#8C8C8C" },
+// ---- initial zero-value / empty-state structures (no dummy stats) ----
+const EMPTY_STATS = [
+  { title: "Current Daily Streak", number: "0 Days", change: "Inactive", icon: Icon.Flame },
+  { title: "Total Active Days", number: "0 Days", change: "Cumulative", icon: Icon.Calendar },
+  { title: "Longest Streak", number: "0 Days", change: "Best record", icon: Icon.Trend },
+  { title: "Questions Solved", number: "0", change: "0% avg score", icon: Icon.Book },
+  { title: "Mock Tests Completed", number: "0", change: "0 interviews", icon: Icon.Users },
+  { title: "Total Activities", number: "0", change: "+0 this wk", icon: Icon.Chart },
 ];
 const NAV_MAIN = [
   { label: "Dashboard", icon: Icon.Grid, section: "dashboard" },
@@ -284,10 +264,10 @@ function Header({ user }) {
   );
 }
 
-function StatsRow({ stats }) {
-  const items = stats && stats.length > 0 ? stats : DEFAULT_STATS;
+function StatsRow({ stats, loading }) {
+  const items = stats && stats.length > 0 ? stats : EMPTY_STATS;
   return (
-    <div className="stats-row">
+    <div className="stats-row" style={loading ? { opacity: 0.7 } : undefined}>
       {items.map(({ title, number, change, icon: StatIcon }) => (
         <div className="stat-card" key={title}>
           <div className="stat-top">
@@ -302,38 +282,35 @@ function StatsRow({ stats }) {
   );
 }
 
-function AnalyticsCard({ chartData }) {
-  const items = chartData && chartData.length > 0 ? chartData : DEFAULT_CHART_DATA;
+function AnalyticsCard({ chartData, loading }) {
+  const items = chartData || [];
   return (
     <div className="analytics-card">
       <div className="analytics-head">
         <h2>Performance Overview</h2>
         <div className="filter-pill">
-          Last 6 sessions
+          By Category
           <Icon.ChevronDown size={12} />
         </div>
       </div>
       <div className="analytics-body">
         <div className="chart-wrap">
-          <div className="chart">
-            {items.map(({ label, height, color }) => (
-              <div className="bar-col" key={label}>
-                <div className="bar" style={{ height: `${height}%`, background: color }} />
-                <div className="bar-label">{label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="team-float">
-          <h4>Your Mentors</h4>
-          <div className="team-row">
-            <div className="team-avatars">
-              <div className="avatar" style={{ background: "#C97F4A" }}>AK</div>
-              <div className="avatar" style={{ background: "#E4A16A" }}>RM</div>
-              <div className="avatar" style={{ background: "#1B1B1D" }}>SD</div>
+          {loading ? (
+            <div style={{ padding: "2rem 0", textAlign: "center", color: "var(--muted)" }}>Loading performance chart…</div>
+          ) : items.length === 0 ? (
+            <div style={{ padding: "2rem 0", textAlign: "center", color: "var(--muted)" }}>
+              No practice or mock test data yet. Solve questions in Practice to see your category chart!
             </div>
-          </div>
-          <p>3 mentors reviewed your last mock interview and left feedback.</p>
+          ) : (
+            <div className="chart">
+              {items.map(({ label, height, color }) => (
+                <div className="bar-col" key={label}>
+                  <div className="bar" style={{ height: `${height}%`, background: color }} />
+                  <div className="bar-label">{label}</div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -341,80 +318,92 @@ function AnalyticsCard({ chartData }) {
 }
 
 function CompaniesTable({ companies }) {
-  const items = companies && companies.length > 0 ? companies : DEFAULT_COMPANIES;
+  const items = companies || [];
   return (
     <div className="table-card">
       <div className="table-head">
         <h2>Target Companies</h2>
         <div className="filter-pill">
-          View all
+          Readiness
           <Icon.ChevronRight />
         </div>
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Company</th>
-            <th>Role</th>
-            <th>Readiness</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map(({ name, role, readiness, status, logoBg, initials }) => (
-            <tr key={name}>
-              <td>
-                <div className="company-cell">
-                  <div className="company-logo" style={{ background: logoBg }}>{initials}</div>
-                  {name}
-                </div>
-              </td>
-              <td className="row-pct">{role}</td>
-              <td>
-                <div className="progress-track">
-                  <div className="progress-fill" style={{ width: `${readiness}%` }} />
-                </div>
-              </td>
-              <td>
-                <span className={`status-pill ${status === "Ready" ? "status-ready" : "status-progress"}`}>
-                  {status}
-                </span>
-              </td>
+      {items.length === 0 ? (
+        <div style={{ padding: "1.5rem", textAlign: "center", color: "var(--muted)" }}>
+          Complete practice questions or mock tests to calculate company readiness.
+        </div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Company</th>
+              <th>Role</th>
+              <th>Readiness</th>
+              <th>Status</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map(({ name, role, readiness, status, logoBg, initials }) => (
+              <tr key={name}>
+                <td>
+                  <div className="company-cell">
+                    <div className="company-logo" style={{ background: logoBg }}>{initials}</div>
+                    {name}
+                  </div>
+                </td>
+                <td className="row-pct">{role}</td>
+                <td>
+                  <div className="progress-track">
+                    <div className="progress-fill" style={{ width: `${readiness}%` }} />
+                  </div>
+                </td>
+                <td>
+                  <span className={`status-pill ${status === "Ready" ? "status-ready" : "status-progress"}`}>
+                    {status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }
 
 function UpcomingInterviews({ meetings, onNavigate }) {
-  const items = meetings && meetings.length > 0 ? meetings : DEFAULT_MEETINGS;
+  const items = meetings || [];
   return (
     <div className="dark-card">
       <div className="dark-card-head">
         <h3>Upcoming Interviews</h3>
-        <span>{items.length} today</span>
+        <span>{items.length} scheduled</span>
       </div>
-      {items.map(({ title, subtitle, time, initials, color }) => (
-        <div
-          className="meeting-row"
-          key={title}
-          role="button"
-          tabIndex={0}
-          onClick={() => onNavigate("/interview")}
-          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onNavigate("/interview")}
-        >
-          <div className="meeting-avatars">
-            <div className="avatar" style={{ background: color }}>{initials}</div>
-          </div>
-          <div className="meeting-info">
-            <div className="t">{title}</div>
-            <div className="s">{subtitle}</div>
-          </div>
-          <div className="meeting-time">{time}</div>
+      {items.length === 0 ? (
+        <div style={{ padding: "1rem 0", fontSize: "0.875rem", opacity: 0.75 }}>
+          No upcoming interviews scheduled.
         </div>
-      ))}
+      ) : (
+        items.map(({ title, subtitle, time, initials, color }, idx) => (
+          <div
+            className="meeting-row"
+            key={`${title}-${idx}`}
+            role="button"
+            tabIndex={0}
+            onClick={() => onNavigate("/interview")}
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onNavigate("/interview")}
+          >
+            <div className="meeting-avatars">
+              <div className="avatar" style={{ background: color }}>{initials}</div>
+            </div>
+            <div className="meeting-info">
+              <div className="t">{title}</div>
+              <div className="s">{subtitle}</div>
+            </div>
+            <div className="meeting-time">{time}</div>
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -439,12 +428,17 @@ function Recommendations() {
 }
 
 // ── inline content rendered for each section ──────────────────────────────
-function DashboardHome({ user, onNavigate, stats, chartData, companies }) {
+function DashboardHome({ user, onNavigate, stats, chartData, companies, loading, error }) {
   return (
     <>
       <Header user={user} />
-      <StatsRow stats={stats} />
-      <AnalyticsCard chartData={chartData} />
+      {error && (
+        <div style={{ marginBottom: "1rem", padding: "0.75rem 1rem", borderRadius: "10px", background: "rgba(239,68,68,0.12)", color: "#dc2626", fontSize: "0.9rem" }}>
+          {error}
+        </div>
+      )}
+      <StatsRow stats={stats} loading={loading} />
+      <AnalyticsCard chartData={chartData} loading={loading} />
       <CompaniesTable companies={companies} />
     </>
   );
@@ -455,15 +449,18 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
   const [activeSection, setActiveSection] = useState("dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  const [stats, setStats] = useState(DEFAULT_STATS);
-  const [chartData, setChartData] = useState(DEFAULT_CHART_DATA);
-  const [companies, setCompanies] = useState(DEFAULT_COMPANIES);
-  const [meetings, setMeetings] = useState(DEFAULT_MEETINGS);
+  const [stats, setStats] = useState(EMPTY_STATS);
+  const [chartData, setChartData] = useState([]);
+  const [companies, setCompanies] = useState([]);
+  const [meetings, setMeetings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
     async function loadDashboardData() {
+      setLoading(true);
+      setError(null);
       try {
         const [statsRes, chartRes, compRes, meetRes] = await Promise.allSettled([
           dashboardService.getDashboardStats(),
@@ -476,44 +473,50 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
 
         if (statsRes.status === 'fulfilled' && statsRes.value) {
           const d = statsRes.value;
+          const streak = d.currentStreak ?? 0;
+          const avg = Math.round(d.averageScore ?? 0);
           setStats([
-            { title: "Total Interviews", number: String(d.totalInterviews ?? 12), change: d.weeklyChange || "+3 this wk", icon: Icon.Users },
-            { title: "Average Score", number: `${Math.round(d.averageScore ?? 85)}%`, change: "+5.2%", icon: Icon.Trend },
-            { title: "Questions Solved", number: String(d.questionsSolved ?? 0), change: "+ solved", icon: Icon.Book },
-            { title: "Daily Streak", number: `${Math.max(1, d.currentStreak ?? 1)} Days`, change: "🔥 Active", icon: Icon.Flame },
+            { title: "Current Daily Streak", number: `${streak} ${streak === 1 ? 'Day' : 'Days'}`, change: streak > 0 ? "🔥 Active" : "Inactive", icon: Icon.Flame },
+            { title: "Total Active Days", number: `${d.totalActiveDays ?? 0} ${(d.totalActiveDays ?? 0) === 1 ? 'Day' : 'Days'}`, change: "Cumulative", icon: Icon.Calendar },
+            { title: "Longest Streak", number: `${d.longestStreak ?? 0} ${(d.longestStreak ?? 0) === 1 ? 'Day' : 'Days'}`, change: "Best record", icon: Icon.Trend },
+            { title: "Questions Solved", number: String(d.questionsSolved ?? 0), change: `${avg}% avg score`, icon: Icon.Book },
+            { title: "Mock Tests Completed", number: String(d.mockTestsCompleted ?? 0), change: `${d.totalInterviews ?? 0} sessions`, icon: Icon.Users },
+            { title: "Total Activities", number: String(d.totalActivities ?? 0), change: d.weeklyChange || "+0 this wk", icon: Icon.Chart },
           ]);
+        } else if (statsRes.status === 'rejected') {
+          setError("Could not load dashboard statistics from server.");
         }
 
-        if (chartRes.status === 'fulfilled' && Array.isArray(chartRes.value) && chartRes.value.length > 0) {
+        if (chartRes.status === 'fulfilled' && Array.isArray(chartRes.value)) {
           setChartData(chartRes.value.map(c => ({
             label: c.label || 'Topic',
-            height: c.height || c.score || 60,
+            height: c.height ?? c.score ?? 0,
             color: c.color || 'var(--accent)'
           })));
         }
 
-        if (compRes.status === 'fulfilled' && Array.isArray(compRes.value) && compRes.value.length > 0) {
+        if (compRes.status === 'fulfilled' && Array.isArray(compRes.value)) {
           setCompanies(compRes.value.map(c => ({
             name: c.name || 'Company',
             role: c.role || 'Software Engineer',
-            readiness: c.readiness ?? 75,
-            status: c.status || (c.readiness >= 75 ? 'Ready' : 'In Progress'),
+            readiness: c.readiness ?? 0,
+            status: c.status || (c.readiness >= 75 ? 'Ready' : c.readiness > 0 ? 'In Progress' : 'Not Started'),
             logoBg: c.logoBg || '#3C6FBB',
             initials: c.initials || (c.name ? c.name.slice(0, 2).toUpperCase() : 'CO')
           })));
         }
 
-        if (meetRes.status === 'fulfilled' && Array.isArray(meetRes.value) && meetRes.value.length > 0) {
+        if (meetRes.status === 'fulfilled' && Array.isArray(meetRes.value)) {
           setMeetings(meetRes.value.map(m => ({
             title: m.title || 'Mock Interview',
             subtitle: m.subtitle || 'Scheduled Session',
-            time: m.time || '3:00 PM',
+            time: m.time || 'Upcoming',
             initials: m.initials || 'MI',
             color: m.color || '#C97F4A'
           })));
         }
       } catch (err) {
-        console.warn("Could not load dashboard data from API, using fallback data:", err);
+        if (isMounted) setError("Could not load dashboard data from server.");
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -555,6 +558,8 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
             stats={stats}
             chartData={chartData}
             companies={companies}
+            loading={loading}
+            error={error}
           />
         );
     }

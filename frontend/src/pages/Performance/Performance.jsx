@@ -77,49 +77,8 @@ const Icon = {
   ),
 }
 
-// ── Fallback Defaults ──────────────────────────────────────────────────────────
-const DEFAULT_SCORE_TREND = [
-  { session: 'S1', score: 64, date: 'Jul 10', topic: 'HR Round' },
-  { session: 'S2', score: 72, date: 'Jul 13', topic: 'DSA Basics' },
-  { session: 'S3', score: 68, date: 'Jul 16', topic: 'SQL' },
-  { session: 'S4', score: 78, date: 'Jul 19', topic: 'System Design' },
-  { session: 'S5', score: 85, date: 'Jul 22', topic: 'DSA Advanced' },
-  { session: 'S6', score: 81, date: 'Jul 25', topic: 'Aptitude' },
-  { session: 'S7', score: 88, date: 'Jul 28', topic: 'Java OOP' },
-  { session: 'S8', score: 92, date: 'Aug 1', topic: 'DSA Trees' },
-]
-
-const DEFAULT_SKILL_BREAKDOWN = [
-  { label: 'Data Structures & Algo', score: 91, sessions: 12, color: '#5B4EE8' },
-  { label: 'System Design', score: 74, sessions: 6, color: '#8B5CF6' },
-  { label: 'SQL & Databases', score: 68, sessions: 5, color: '#10B981' },
-  { label: 'Java / OOP', score: 85, sessions: 7, color: '#F59E0B' },
-  { label: 'Quantitative Aptitude', score: 78, sessions: 5, color: '#EF4444' },
-  { label: 'HR & Behavioural', score: 82, sessions: 3, color: '#06B6D4' },
-]
-
-const DEFAULT_RECENT_SESSIONS = [
-  { id: 1, topic: 'DSA Trees & Graphs', date: 'Aug 1, 2026', score: 92, time: '28 min', type: 'Mock' },
-  { id: 2, topic: 'Java OOP Fundamentals', date: 'Jul 28, 2026', score: 88, time: '22 min', type: 'Practice' },
-  { id: 3, topic: 'Aptitude — Percentages', date: 'Jul 25, 2026', score: 81, time: '20 min', type: 'Practice' },
-  { id: 4, topic: 'DSA Arrays & Sorting', date: 'Jul 22, 2026', score: 85, time: '30 min', type: 'Mock' },
-  { id: 5, topic: 'System Design Basics', date: 'Jul 19, 2026', score: 78, time: '35 min', type: 'Mock' },
-  { id: 6, topic: 'SQL Joins & Subqueries', date: 'Jul 16, 2026', score: 68, time: '18 min', type: 'Practice' },
-]
-
-const DEFAULT_STRENGTHS = [
-  'Consistent improvement in DSA over the past 4 weeks',
-  'Strong logical reasoning — top 15% among platform users',
-  'Java OOP concepts above 80% benchmark consistently',
-]
-
-const DEFAULT_IMPROVE = [
-  'SQL window functions & query optimisation need attention',
-  'System Design depth — practice more HLD/LLD problems',
-  'Quantitative speed: accuracy is high but time per Q is slow',
-]
-
-const DEFAULT_WEEKLY_ACTIVITY = [0, 1, 0, 2, 3, 1, 0, 1, 2, 3, 2, 1, 0, 0, 2, 3, 3, 1, 2, 0, 1, 3, 2, 1, 3, 3, 2, 0]
+// ── Empty Defaults (no dummy stats) ────────────────────────────────────────────
+const EMPTY_WEEKLY_ACTIVITY = Array(28).fill(0)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function scoreLabel(s) {
@@ -158,82 +117,100 @@ function AnimatedNumber({ target, suffix = '' }) {
 export default function Performance() {
   const [activeTab, setActiveTab] = useState('overview')
 
-  // Live state from API
-  const [totalSessions, setTotalSessions] = useState(38)
-  const [averageScore, setAverageScore] = useState(82)
-  const [currentStreak, setCurrentStreak] = useState(9)
-  const [bestCategory, setBestCategory] = useState('DSA')
-  const [bestCategoryScore, setBestCategoryScore] = useState(91)
-  const [bestCategorySessions, setBestCategorySessions] = useState(12)
+  // Live state from API (zero-initialized, no dummy fallback)
+  const [totalSessions, setTotalSessions] = useState(0)
+  const [averageScore, setAverageScore] = useState(0)
+  const [currentStreak, setCurrentStreak] = useState(0)
+  const [longestStreak, setLongestStreak] = useState(0)
+  const [totalActiveDays, setTotalActiveDays] = useState(0)
+  const [totalAttempted, setTotalAttempted] = useState(0)
+  const [totalSolved, setTotalSolved] = useState(0)
+  const [totalQuestionsInBank, setTotalQuestionsInBank] = useState(0)
+  const [accuracyPercentage, setAccuracyPercentage] = useState(0)
+  const [bestCategory, setBestCategory] = useState('N/A')
+  const [bestCategoryScore, setBestCategoryScore] = useState(0)
+  const [bestCategorySessions, setBestCategorySessions] = useState(0)
 
-  const [scoreTrend, setScoreTrend] = useState(DEFAULT_SCORE_TREND)
-  const [skillBreakdown, setSkillBreakdown] = useState(DEFAULT_SKILL_BREAKDOWN)
-  const [recentSessions, setRecentSessions] = useState(DEFAULT_RECENT_SESSIONS)
-  const [strengths, setStrengths] = useState(DEFAULT_STRENGTHS)
-  const [improve, setImprove] = useState(DEFAULT_IMPROVE)
-  const [weeklyActivity, setWeeklyActivity] = useState(DEFAULT_WEEKLY_ACTIVITY)
-  const [placementReadiness, setPlacementReadiness] = useState(76)
+  const [scoreTrend, setScoreTrend] = useState([])
+  const [skillBreakdown, setSkillBreakdown] = useState([])
+  const [recentSessions, setRecentSessions] = useState([])
+  const [strengths, setStrengths] = useState([])
+  const [improve, setImprove] = useState([])
+  const [weeklyActivity, setWeeklyActivity] = useState(EMPTY_WEEKLY_ACTIVITY)
+  const [placementReadiness, setPlacementReadiness] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   useEffect(() => {
     let isMounted = true
     async function loadData() {
+      setLoading(true)
+      setError(null)
       try {
         const data = await performanceService.getPerformanceData()
         if (!isMounted || !data) return
 
-        if (data.totalSessions != null) setTotalSessions(data.totalSessions)
-        if (data.averageScore != null) setAverageScore(Math.round(data.averageScore))
-        if (data.currentStreak != null) setCurrentStreak(data.currentStreak)
-        if (data.bestCategory) setBestCategory(data.bestCategory)
-        if (data.bestCategoryScore != null) setBestCategoryScore(Math.round(data.bestCategoryScore))
-        if (data.bestCategorySessions != null) setBestCategorySessions(data.bestCategorySessions)
+        setTotalSessions(data.totalSessions ?? 0)
+        setAverageScore(Math.round(data.averageScore ?? 0))
+        setCurrentStreak(data.currentStreak ?? 0)
+        setLongestStreak(data.longestStreak ?? 0)
+        setTotalActiveDays(data.totalActiveDays ?? 0)
+        setTotalAttempted(data.totalAttempted ?? 0)
+        setTotalSolved(data.totalSolved ?? 0)
+        setTotalQuestionsInBank(data.totalQuestionsInBank ?? 0)
+        setAccuracyPercentage(Math.round(data.accuracyPercentage ?? 0))
+        setBestCategory(data.bestCategory || 'N/A')
+        setBestCategoryScore(Math.round(data.bestCategoryScore ?? 0))
+        setBestCategorySessions(data.bestCategorySessions ?? 0)
 
-        if (Array.isArray(data.scoreTrend) && data.scoreTrend.length > 0) {
-          setScoreTrend(data.scoreTrend.map((item, idx) => ({
-            session: item.session || `S${idx + 1}`,
-            score: Math.round(item.score ?? 75),
-            date: item.date || `Session ${idx + 1}`,
-            topic: item.topic || 'Mock Session',
-          })))
-        }
+        setScoreTrend(
+          Array.isArray(data.scoreTrend)
+            ? data.scoreTrend.map((item, idx) => ({
+                session: item.session || `S${idx + 1}`,
+                score: Math.round(item.score ?? 0),
+                date: item.date || `Session ${idx + 1}`,
+                topic: item.topic || 'Session',
+              }))
+            : []
+        )
 
-        if (Array.isArray(data.skillBreakdown) && data.skillBreakdown.length > 0) {
-          const colors = ['#5B4EE8', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4']
-          setSkillBreakdown(data.skillBreakdown.map((item, idx) => ({
-            label: item.label || item.category || 'Skill',
-            score: Math.round(item.score ?? 70),
-            sessions: item.sessions || 1,
-            totalQuestions: item.totalQuestions || item.sessions || 1,
-            color: item.color || colors[idx % colors.length],
-          })))
-        }
+        const colors = ['#5B4EE8', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#06B6D4']
+        setSkillBreakdown(
+          Array.isArray(data.skillBreakdown)
+            ? data.skillBreakdown.map((item, idx) => ({
+                label: item.label || item.category || 'Skill',
+                score: Math.round(item.score ?? 0),
+                sessions: item.sessions || 0,
+                totalQuestions: item.totalQuestions ?? item.sessions ?? 0,
+                color: item.color || colors[idx % colors.length],
+              }))
+            : []
+        )
 
-        if (Array.isArray(data.recentSessions) && data.recentSessions.length > 0) {
-          setRecentSessions(data.recentSessions.map((item, idx) => ({
-            id: item.id || idx + 1,
-            topic: item.topic || (item.roleName ? `${item.roleName} Mock` : 'Technical Mock'),
-            date: item.date || 'Recent',
-            score: Math.round(item.score ?? item.overallScore ?? 75),
-            time: item.time || '25 min',
-            type: item.type || (idx % 2 === 0 ? 'Mock' : 'Practice'),
-          })))
-        }
+        setRecentSessions(
+          Array.isArray(data.recentSessions)
+            ? data.recentSessions.map((item, idx) => ({
+                id: item.id || idx + 1,
+                topic: item.topic || (item.roleName ? `${item.roleName}` : 'Practice Session'),
+                date: item.date || 'Recent',
+                score: Math.round(item.score ?? item.overallScore ?? 0),
+                time: item.time || '—',
+                type: item.type || 'Practice',
+              }))
+            : []
+        )
 
-        if (Array.isArray(data.strengths) && data.strengths.length > 0) {
-          setStrengths(data.strengths)
-        }
-        if (Array.isArray(data.improvements) && data.improvements.length > 0) {
-          setImprove(data.improvements)
-        }
-        if (Array.isArray(data.weeklyActivity) && data.weeklyActivity.length > 0) {
-          setWeeklyActivity(data.weeklyActivity)
-        }
-        if (data.placementReadiness != null) {
-          setPlacementReadiness(Math.round(data.placementReadiness))
-        }
+        setStrengths(Array.isArray(data.strengths) ? data.strengths : [])
+        setImprove(Array.isArray(data.improvements) ? data.improvements : [])
+        setWeeklyActivity(
+          Array.isArray(data.weeklyActivity) && data.weeklyActivity.length > 0
+            ? data.weeklyActivity
+            : EMPTY_WEEKLY_ACTIVITY
+        )
+        setPlacementReadiness(Math.round(data.placementReadiness ?? 0))
       } catch (err) {
-        console.warn('Could not load performance data from API, using defaults:', err)
+        console.warn('Could not load performance data from API:', err)
+        if (isMounted) setError('Could not load performance analytics from server.')
       } finally {
         if (isMounted) setLoading(false)
       }
@@ -252,23 +229,25 @@ export default function Performance() {
     }
   }, [])
 
+  const unsolvedCount = Math.max(0, totalQuestionsInBank - totalSolved)
+
   const kpiCards = [
     {
-      id: 'sessions',
-      label: 'Total Sessions',
-      value: String(totalSessions),
-      sub: '+5 this week',
-      up: true,
-      icon: Icon.Calendar,
+      id: 'solved',
+      label: 'Questions Solved',
+      value: `${totalSolved}/${totalQuestionsInBank || totalAttempted}`,
+      sub: `${totalAttempted} attempted · ${unsolvedCount} unsolved`,
+      up: null,
+      icon: Icon.CheckCircle,
       color: '#5B4EE8',
       bg: 'rgba(91,78,232,0.08)',
     },
     {
       id: 'avg',
-      label: 'Average Score',
-      value: `${averageScore}%`,
-      sub: '+4.3% from last month',
-      up: true,
+      label: 'Accuracy / Avg Score',
+      value: `${accuracyPercentage || averageScore}%`,
+      sub: `Avg session score: ${averageScore}%`,
+      up: accuracyPercentage > 0 ? true : null,
       icon: Icon.Trend,
       color: '#10B981',
       bg: 'rgba(16,185,129,0.08)',
@@ -277,7 +256,7 @@ export default function Performance() {
       id: 'streak',
       label: 'Current Streak',
       value: `${currentStreak} days`,
-      sub: 'Personal best: 14 days',
+      sub: `Best: ${longestStreak} days · ${totalActiveDays} active days`,
       up: null,
       icon: Icon.Flame,
       color: '#F59E0B',
@@ -287,7 +266,9 @@ export default function Performance() {
       id: 'best',
       label: 'Best Category',
       value: bestCategory,
-      sub: `Avg ${bestCategoryScore}% across ${bestCategorySessions} sessions`,
+      sub: bestCategory !== 'N/A'
+        ? `Avg ${bestCategoryScore}% across ${bestCategorySessions} answers`
+        : `${totalSessions} sessions completed`,
       up: null,
       icon: Icon.Trophy,
       color: '#8B5CF6',
@@ -306,6 +287,11 @@ export default function Performance() {
       <div className="perf-inner">
 
         {/* ── Hero ── */}
+        {error && (
+          <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: '10px', background: 'rgba(239,68,68,0.12)', color: '#dc2626', fontSize: '0.9rem' }}>
+            {error}
+          </div>
+        )}
         <div className="perf-hero">
           <div className="perf-hero__accent" />
           <div className="perf-hero__content">
@@ -392,34 +378,40 @@ export default function Performance() {
                 </div>
                 <div className="perf-trend-badge"><Icon.ArrowUp /> Live Tracking</div>
               </div>
-              <div className="perf-chart-area">
-                <div className="perf-chart-guides">
-                  {[100, 75, 50, 25].map(g => (
-                    <div key={g} className="perf-guide">
-                      <span className="perf-guide-num">{g}%</span>
-                      <div className="perf-guide-line" />
-                    </div>
-                  ))}
+              {scoreTrend.length === 0 ? (
+                <div style={{ padding: '2.5rem 1rem', textAlign: 'center', color: 'var(--muted)' }}>
+                  {loading ? 'Loading score trend…' : 'No completed sessions yet. Complete a mock test to track your score trend!'}
                 </div>
-                <div className="perf-bar-chart">
-                  {scoreTrend.map(({ session, score, date, topic }) => (
-                    <div key={session} className="perf-bar-col">
-                      <div className="perf-bar-tooltip">
-                        <strong>{score}%</strong>
-                        <span>{topic}</span>
-                        <span>{date}</span>
+              ) : (
+                <div className="perf-chart-area">
+                  <div className="perf-chart-guides">
+                    {[100, 75, 50, 25].map(g => (
+                      <div key={g} className="perf-guide">
+                        <span className="perf-guide-num">{g}%</span>
+                        <div className="perf-guide-line" />
                       </div>
-                      <div className="perf-bar-wrap">
-                        <div className="perf-bar" style={{ height: `${score}%` }}>
-                          <span className="perf-bar-val">{score}%</span>
+                    ))}
+                  </div>
+                  <div className="perf-bar-chart">
+                    {scoreTrend.map(({ session, score, date, topic }) => (
+                      <div key={session} className="perf-bar-col">
+                        <div className="perf-bar-tooltip">
+                          <strong>{score}%</strong>
+                          <span>{topic}</span>
+                          <span>{date}</span>
                         </div>
+                        <div className="perf-bar-wrap">
+                          <div className="perf-bar" style={{ height: `${score}%` }}>
+                            <span className="perf-bar-val">{score}%</span>
+                          </div>
+                        </div>
+                        <div className="perf-bar-label">{session}</div>
+                        <div className="perf-bar-date">{date}</div>
                       </div>
-                      <div className="perf-bar-label">{session}</div>
-                      <div className="perf-bar-date">{date}</div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* Skill Breakdown */}
@@ -431,20 +423,26 @@ export default function Performance() {
                 </div>
               </div>
               <div className="perf-skill-list">
-                {skillBreakdown.map(({ label, score, sessions, totalQuestions, color }) => (
-                  <div key={label} className="perf-skill-row">
-                    <div className="perf-skill-meta">
-                      <span className="perf-skill-label">{label}</span>
-                      <span className="perf-skill-sessions">
-                        {totalQuestions ? `${totalQuestions} solved` : `${sessions} sessions`}
-                      </span>
-                    </div>
-                    <div className="perf-skill-bar-wrap">
-                      <div className="perf-skill-bar" style={{ '--skill-w': `${score}%`, '--skill-color': color }} />
-                    </div>
-                    <span className="perf-skill-score" style={{ color }}>{score}%</span>
+                {skillBreakdown.length === 0 ? (
+                  <div style={{ padding: '1.5rem 0', textAlign: 'center', color: 'var(--muted)' }}>
+                    {loading ? 'Loading skill breakdown…' : 'No topic performance data yet. Solve practice questions to see your topic breakdown.'}
                   </div>
-                ))}
+                ) : (
+                  skillBreakdown.map(({ label, score, sessions, totalQuestions, color }) => (
+                    <div key={label} className="perf-skill-row">
+                      <div className="perf-skill-meta">
+                        <span className="perf-skill-label">{label}</span>
+                        <span className="perf-skill-sessions">
+                          {totalQuestions ? `${totalQuestions} answered` : `${sessions} sessions`}
+                        </span>
+                      </div>
+                      <div className="perf-skill-bar-wrap">
+                        <div className="perf-skill-bar" style={{ '--skill-w': `${score}%`, '--skill-color': color }} />
+                      </div>
+                      <span className="perf-skill-score" style={{ color }}>{score}%</span>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
 
@@ -492,7 +490,12 @@ export default function Performance() {
               <span className="perf-session-count">{recentSessions.length} sessions</span>
             </div>
             <div className="perf-sessions-wrap">
-              <table className="perf-sessions-table">
+              {recentSessions.length === 0 ? (
+                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
+                  No recent sessions recorded yet.
+                </div>
+              ) : (
+                <table className="perf-sessions-table">
                 <thead>
                   <tr>
                     <th>#</th>
@@ -537,6 +540,7 @@ export default function Performance() {
                   ))}
                 </tbody>
               </table>
+              )}
             </div>
           </div>
         )}
@@ -550,11 +554,15 @@ export default function Performance() {
               <h2 className="perf-card-title">Your Strengths 💪</h2>
               <p className="perf-card-sub">Areas where you're consistently performing well</p>
               <ul className="perf-insight-list">
-                {strengths.map((s, i) => (
-                  <li key={i} className="perf-insight-item perf-insight-item--green">
-                    <span className="perf-insight-bullet">✓</span>{s}
-                  </li>
-                ))}
+                {strengths.length === 0 ? (
+                  <li className="perf-insight-item">Complete more questions to uncover your strengths.</li>
+                ) : (
+                  strengths.map((s, i) => (
+                    <li key={i} className="perf-insight-item perf-insight-item--green">
+                      <span className="perf-insight-bullet">✓</span>{s}
+                    </li>
+                  ))
+                )}
               </ul>
             </div>
 
@@ -563,11 +571,15 @@ export default function Performance() {
               <h2 className="perf-card-title">Focus Areas 🎯</h2>
               <p className="perf-card-sub">Topics that need more practice for big gains</p>
               <ul className="perf-insight-list">
-                {improve.map((s, i) => (
-                  <li key={i} className="perf-insight-item perf-insight-item--orange">
-                    <span className="perf-insight-bullet">!</span>{s}
-                  </li>
-                ))}
+                {improve.length === 0 ? (
+                  <li className="perf-insight-item">No weak areas flagged yet.</li>
+                ) : (
+                  improve.map((s, i) => (
+                    <li key={i} className="perf-insight-item perf-insight-item--orange">
+                      <span className="perf-insight-bullet">!</span>{s}
+                    </li>
+                  ))
+                )}
               </ul>
             </div>
 

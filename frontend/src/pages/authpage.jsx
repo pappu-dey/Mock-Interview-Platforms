@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './authpage.css'
 import authService from '../services/authService'
+import { API_BASE_URL } from '../config/apiConfig'
 
-const API_BASE = 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/auth'
+const API_BASE = `${API_BASE_URL}/api/auth`
 
 // ─── Helper: friendly server error message ───────────────────────────────────
 function parseError(err, fallback) {

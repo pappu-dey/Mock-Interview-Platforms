@@ -75,52 +75,80 @@ public class PracticeServiceImpl implements PracticeService {
                 .build();
         answerRepository.save(answer);
 
-        // 3. Save or update UserQuestionProgress (marks question solved for this user)
+        boolean isCorrect = Boolean.TRUE.equals(request.getIsCorrect());
+
+        // 3. Save or update UserQuestionProgress (per-user, no duplicates)
+        boolean newlySolved = false;
         if (request.getQuestionId() != null) {
             Long qId = request.getQuestionId();
-            UserQuestionProgress progress = userQuestionProgressRepository
-                    .findByUser_UserIdAndQuestionId(userId, qId)
-                    .orElseGet(() -> UserQuestionProgress.builder()
-                            .user(user)
-                            .questionId(qId)
-                            .build());
+            Optional<UserQuestionProgress> existingOpt = userQuestionProgressRepository
+                    .findByUser_UserIdAndQuestionId(userId, qId);
+
+            boolean wasAlreadySolved = existingOpt
+                    .map(p -> "SOLVED".equalsIgnoreCase(p.getStatus()))
+                    .orElse(false);
+
+            UserQuestionProgress progress = existingOpt.orElseGet(() -> UserQuestionProgress.builder()
+                    .user(user)
+                    .questionId(qId)
+                    .build());
 
             progress.setCategory(request.getCategory());
             progress.setTopic(request.getTopic());
-            progress.setStatus("SOLVED");
-            progress.setIsCorrect(Boolean.TRUE.equals(request.getIsCorrect()));
+            if (isCorrect) {
+                progress.setStatus("SOLVED");
+                if (!wasAlreadySolved) {
+                    newlySolved = true;
+                }
+            } else if (!wasAlreadySolved) {
+                progress.setStatus("ATTEMPTED");
+            }
+            progress.setIsCorrect(wasAlreadySolved || isCorrect);
             progress.setSelectedOption(request.getSelectedOption());
             progress.setScore(score);
-            progress.setSolvedAt(LocalDateTime.now());
+            progress.setSolvedAt(LocalDateTime.now(ActivityStatsCalculator.APP_ZONE));
             userQuestionProgressRepository.save(progress);
+        } else if (isCorrect) {
+            newlySolved = true;
         }
 
-        // 4. Update Daily Activity for today
-        LocalDate today = LocalDate.now();
+        // 4. Update Daily Activity ONLY when a question is newly solved
+        LocalDate today = ActivityStatsCalculator.today();
         DailyActivity activity = dailyActivityRepository
                 .findByUser_UserIdAndActivityDate(userId, today)
-                .orElseGet(() -> DailyActivity.builder()
+                .orElse(null);
+
+        if (newlySolved) {
+            if (activity == null) {
+                activity = DailyActivity.builder()
                         .user(user)
                         .activityDate(today)
-                        .sessionsCount(1)
+                        .sessionsCount(0)
                         .questionsSolved(0)
-                        .build());
+                        .mockTestsCompleted(0)
+                        .totalActivities(0)
+                        .build();
+            }
+            int currentSolved = activity.getQuestionsSolved() != null ? activity.getQuestionsSolved() : 0;
+            int currentTotal = activity.getTotalActivities() != null ? activity.getTotalActivities() : 0;
+            activity.setQuestionsSolved(currentSolved + 1);
+            activity.setTotalActivities(currentTotal + 1);
+            activity = dailyActivityRepository.save(activity);
+        }
 
-        int currentSolved = activity.getQuestionsSolved() != null ? activity.getQuestionsSolved() : 0;
-        activity.setQuestionsSolved(currentSolved + 1);
-        dailyActivityRepository.save(activity);
-
-        // 5. Calculate total questions solved by this user
-        long totalSolved = userQuestionProgressRepository.countByUser_UserId(userId);
+        // 5. Calculate total unique questions solved by this user
+        long totalSolved = userQuestionProgressRepository.countByUser_UserIdAndStatus(userId, "SOLVED");
 
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("success", true);
-        res.put("todayQuestionsSolved", activity.getQuestionsSolved());
+        res.put("newlySolved", newlySolved);
+        res.put("status", isCorrect ? "SOLVED" : "ATTEMPTED");
+        res.put("todayQuestionsSolved", activity != null && activity.getQuestionsSolved() != null ? activity.getQuestionsSolved() : 0);
         res.put("totalQuestionsSolved", totalSolved);
         res.put("category", request.getCategory());
         res.put("topic", request.getTopic());
         res.put("questionId", request.getQuestionId());
-        res.put("isCorrect", request.getIsCorrect());
+        res.put("isCorrect", isCorrect);
 
         return res;
     }
@@ -163,31 +191,41 @@ public class PracticeServiceImpl implements PracticeService {
                 .build();
         performanceRepository.save(perf);
 
-        // 3. Update Daily Activity
-        LocalDate today = LocalDate.now();
+        // 3. Update Daily Activity only for completed mock tests (not casual practice exit)
+        LocalDate today = ActivityStatsCalculator.today();
+        boolean isMockTest = !"Practice".equalsIgnoreCase(request.getType());
+
         DailyActivity activity = dailyActivityRepository
                 .findByUser_UserIdAndActivityDate(userId, today)
-                .orElseGet(() -> DailyActivity.builder()
+                .orElse(null);
+
+        if (isMockTest) {
+            if (activity == null) {
+                activity = DailyActivity.builder()
                         .user(user)
                         .activityDate(today)
                         .sessionsCount(0)
                         .questionsSolved(0)
-                        .build());
+                        .mockTestsCompleted(0)
+                        .totalActivities(0)
+                        .build();
+            }
+            int currentSessions = activity.getSessionsCount() != null ? activity.getSessionsCount() : 0;
+            int currentMocks = activity.getMockTestsCompleted() != null ? activity.getMockTestsCompleted() : 0;
+            int currentTotal = activity.getTotalActivities() != null ? activity.getTotalActivities() : 0;
 
-        int currentSessions = activity.getSessionsCount() != null ? activity.getSessionsCount() : 0;
-        int currentSolved = activity.getQuestionsSolved() != null ? activity.getQuestionsSolved() : 0;
-        int questionsToAdd = request.getTotalQuestions() != null ? request.getTotalQuestions() : 10;
-
-        activity.setSessionsCount(currentSessions + 1);
-        activity.setQuestionsSolved(currentSolved + questionsToAdd);
-        dailyActivityRepository.save(activity);
+            activity.setSessionsCount(currentSessions + 1);
+            activity.setMockTestsCompleted(currentMocks + 1);
+            activity.setTotalActivities(currentTotal + 1);
+            activity = dailyActivityRepository.save(activity);
+        }
 
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("success", true);
         res.put("sessionId", session.getSessionId());
         res.put("overallScore", overallScore);
-        res.put("totalSessionsToday", activity.getSessionsCount());
-        res.put("totalQuestionsToday", activity.getQuestionsSolved());
+        res.put("totalSessionsToday", activity != null && activity.getSessionsCount() != null ? activity.getSessionsCount() : 0);
+        res.put("totalQuestionsToday", activity != null && activity.getQuestionsSolved() != null ? activity.getQuestionsSolved() : 0);
 
         return res;
     }
@@ -232,22 +270,27 @@ public class PracticeServiceImpl implements PracticeService {
         List<UserQuestionProgress> list = userQuestionProgressRepository.findByUser_UserId(userId);
 
         List<Long> solvedIds = new ArrayList<>();
+        List<Long> attemptedIds = new ArrayList<>();
         Map<String, Integer> topicCounts = new LinkedHashMap<>();
         Map<String, Integer> categoryCounts = new LinkedHashMap<>();
         Map<String, Object> questionDetails = new LinkedHashMap<>();
 
         for (UserQuestionProgress p : list) {
-            solvedIds.add(p.getQuestionId());
-
-            if (p.getTopic() != null && !p.getTopic().isBlank()) {
-                topicCounts.merge(p.getTopic(), 1, Integer::sum);
-            }
-            if (p.getCategory() != null && !p.getCategory().isBlank()) {
-                categoryCounts.merge(p.getCategory(), 1, Integer::sum);
+            boolean isSolved = "SOLVED".equalsIgnoreCase(p.getStatus());
+            if (isSolved) {
+                solvedIds.add(p.getQuestionId());
+                if (p.getTopic() != null && !p.getTopic().isBlank()) {
+                    topicCounts.merge(p.getTopic(), 1, Integer::sum);
+                }
+                if (p.getCategory() != null && !p.getCategory().isBlank()) {
+                    categoryCounts.merge(p.getCategory(), 1, Integer::sum);
+                }
+            } else {
+                attemptedIds.add(p.getQuestionId());
             }
 
             Map<String, Object> detail = new LinkedHashMap<>();
-            detail.put("status", p.getStatus());
+            detail.put("status", isSolved ? "SOLVED" : "ATTEMPTED");
             detail.put("isCorrect", p.getIsCorrect());
             detail.put("selectedOption", p.getSelectedOption());
             detail.put("score", p.getScore());
@@ -257,10 +300,12 @@ public class PracticeServiceImpl implements PracticeService {
 
         Map<String, Object> res = new LinkedHashMap<>();
         res.put("solvedQuestionIds", solvedIds);
+        res.put("attemptedQuestionIds", attemptedIds);
         res.put("topicCounts", topicCounts);
         res.put("categoryCounts", categoryCounts);
         res.put("questionDetails", questionDetails);
-        res.put("totalSolved", list.size());
+        res.put("totalSolved", solvedIds.size());
+        res.put("totalAttempted", list.size());
         return res;
     }
 }

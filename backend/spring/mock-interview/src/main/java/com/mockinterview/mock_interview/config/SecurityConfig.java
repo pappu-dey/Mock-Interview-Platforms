@@ -51,8 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/companies/**").permitAll()
                         .requestMatchers("/api/questions/**").permitAll()
-                        .requestMatchers("/api/practice/**").permitAll()
-                        // Everything else requires a valid JWT
+                        // Everything else (including /api/practice/**, /api/dashboard/**, /api/performance/**) requires a valid JWT
                         .anyRequest().authenticated())
 
                 // Stateless session — no HttpSession, no cookies
@@ -75,7 +74,11 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("https://mock-interview-platforms.vercel.app/",
+        config.setAllowedOrigins(List.of(
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "http://127.0.0.1:5173",
+                "https://mock-interview-platforms.vercel.app",
                 "https://mock-interview-platforms.vercel.app/"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));

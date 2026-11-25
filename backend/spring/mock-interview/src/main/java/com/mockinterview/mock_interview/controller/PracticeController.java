@@ -6,9 +6,11 @@ import com.mockinterview.mock_interview.dto.practice.SubmitSessionRequest;
 import com.mockinterview.mock_interview.entity.User;
 import com.mockinterview.mock_interview.repository.UserRepository;
 import com.mockinterview.mock_interview.service.PracticeService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
 
@@ -77,19 +79,13 @@ public class PracticeController {
 
     // ─── Helper ──────────────────────────────────────────────────────────────
     private Integer resolveUserId() {
-        try {
-            var auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
-                String email = auth.getName();
-                var userOpt = userRepository.findByEmail(email);
-                if (userOpt.isPresent()) {
-                    return userOpt.get().getUserId();
-                }
-            }
-        } catch (Exception ignored) {}
-        // Fallback: associate with default user so DB table is populated
-        return userRepository.findByEmail("test@test.com")
-                .map(User::getUserId)
-                .orElseGet(() -> userRepository.findAll().stream().findFirst().map(User::getUserId).orElse(null));
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+            String email = auth.getName();
+            return userRepository.findByEmail(email)
+                    .map(User::getUserId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        }
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
     }
 }

@@ -1,15 +1,16 @@
 /**
  * Practice.jsx — Placement Practice Hub (DB-connected)
- * Layout: the 4 category cards are always stacked one under another.
- * Clicking a card opens its topics on the LEFT (all visible, no inner scroll).
- * Clicking a topic opens the question practice view.
+ * Category cards are stacked; selecting one shows its topics on the left;
+ * selecting a topic opens the question practice view.
+ * Styling uses a single accent and follows the site's light/dark theme (see Practice.css).
  */
 
 import React, { useState, useCallback, useEffect } from 'react'
 import practiceService from '../../services/practiceService'
+import { API_BASE_URL } from '../../config/apiConfig'
 import './Practice.css'
 
-const API = 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions'
+const API = `${API_BASE_URL}/api/questions`
 
 const CATEGORY_DB_MAP = {
   aptitude: 'Quantitative Aptitude',
@@ -23,7 +24,6 @@ const CATEGORIES = [
     id: 'aptitude',
     label: 'Quantitative Aptitude',
     icon: '📐',
-    accent: '#E4A16A',
     items: [
       'Problems on Trains', 'Time and Distance', 'Height and Distance',
       'Time and Work', 'Simple Interest', 'Compound Interest',
@@ -42,7 +42,6 @@ const CATEGORIES = [
     id: 'reasoning',
     label: 'Logical Reasoning',
     icon: '🧠',
-    accent: '#B4652E',
     items: [
       'Number Series', 'Letter and Symbol Series', 'Verbal Classification',
       'Essential Part', 'Analogies', 'Artificial Language',
@@ -57,7 +56,6 @@ const CATEGORIES = [
     id: 'english',
     label: 'Verbal & English',
     icon: '📚',
-    accent: '#4C9A6E',
     items: [
       'Spotting Errors', 'Synonyms', 'Antonyms', 'Selecting Words',
       'Spellings', 'Sentence Formation', 'Ordering of Words',
@@ -71,7 +69,6 @@ const CATEGORIES = [
     id: 'technical',
     label: 'Technical & CS Basics',
     icon: '💻',
-    accent: '#5B6B8C',
     items: [
       'Python Interview Questions', 'C Programming Interview Questions',
       'Data Structure Basics', '.NET Interview Questions',
@@ -126,11 +123,13 @@ async function fetchRows(params) {
 }
 
 /* ─── Question Practice Panel ───────────────────────────────────────────── */
-function QuestionPractice({ topic, categoryId, accent, onClose }) {
+function QuestionPractice({ topic, categoryId, onClose }) {
   const [questions, setQuestions] = useState(null) // null = loading
   const [loadError, setLoadError] = useState(null)
   const [selected, setSelected] = useState({})
   const [revealed, setRevealed] = useState({})
+  const [solvedIds, setSolvedIds] = useState(() => new Set())
+  const [statusFilter, setStatusFilter] = useState('all') // 'all' | 'unsolved' | 'solved'
 
   const dbCategory = CATEGORY_DB_MAP[categoryId] || ''
 
@@ -146,15 +145,36 @@ function QuestionPractice({ topic, categoryId, accent, onClose }) {
         setQuestions([]); setLoadError('no_data'); return
       }
       try {
-        let rows = await fetchRows({ category: dbCategory, subCategory: topic })
-        let fallback = false
-        if (rows.length === 0) {
-          rows = await fetchRows({ category: dbCategory })
-          fallback = rows.length > 0
-        }
+        const [rowsResult, progressResult] = await Promise.allSettled([
+          (async () => {
+            let rows = await fetchRows({ category: dbCategory, subCategory: topic })
+            let fallback = false
+            if (rows.length === 0) {
+              rows = await fetchRows({ category: dbCategory })
+              fallback = rows.length > 0
+            }
+            return { rows, fallback }
+          })(),
+          practiceService.getUserProgress(),
+        ])
+
         if (cancelled) return
-        setQuestions(mapRows(rows))
-        setLoadError(rows.length === 0 ? 'no_data' : fallback ? 'topic_fallback' : null)
+
+        if (progressResult.status === 'fulfilled' && progressResult.value) {
+          const ids = Array.isArray(progressResult.value.solvedQuestionIds)
+            ? progressResult.value.solvedQuestionIds.map(String)
+            : []
+          setSolvedIds(new Set(ids))
+        }
+
+        if (rowsResult.status === 'fulfilled') {
+          const { rows, fallback } = rowsResult.value
+          setQuestions(mapRows(rows))
+          setLoadError(rows.length === 0 ? 'no_data' : fallback ? 'topic_fallback' : null)
+        } else {
+          setQuestions([])
+          setLoadError('fetch_failed')
+        }
       } catch {
         if (cancelled) return
         setQuestions([]); setLoadError('fetch_failed')
@@ -164,68 +184,93 @@ function QuestionPractice({ topic, categoryId, accent, onClose }) {
     return () => { cancelled = true }
   }, [dbCategory, topic])
 
-  const handleSelect = useCallback((qIdx, optIdx) => {
-    if (revealed[qIdx]) return
-    setSelected((prev) => ({ ...prev, [qIdx]: optIdx }))
+  const handleSelect = useCallback((qId, optIdx) => {
+    if (revealed[qId]) return
+    setSelected((prev) => ({ ...prev, [qId]: optIdx }))
   }, [revealed])
 
-  const handleCheck = useCallback((qIdx) => {
-    if (selected[qIdx] === undefined) return
-    setRevealed((prev) => ({ ...prev, [qIdx]: true }))
+  const handleCheck = useCallback(async (q) => {
+    const qId = q.id
+    if (selected[qId] === undefined) return
+    setRevealed((prev) => ({ ...prev, [qId]: true }))
 
-    if (questions && questions[qIdx]) {
-      const q = questions[qIdx]
-      const userPick = selected[qIdx]
-      const isCorrect = userPick === q.answer
+    const userPick = selected[qId]
+    const isCorrect = userPick === q.answer
 
-      practiceService.recordQuestionAnswered({
-        questionId: q.id,
-        category: dbCategory,
-        topic: topic,
-        isCorrect: isCorrect,
-        selectedOption: q.options ? q.options[userPick] : String(userPick),
-        score: isCorrect ? 100 : 0,
+    const res = await practiceService.recordQuestionAnswered({
+      questionId: q.id,
+      category: dbCategory,
+      topic: topic,
+      isCorrect: isCorrect,
+      selectedOption: q.options ? q.options[userPick] : String(userPick),
+      score: isCorrect ? 100 : 0,
+    })
+
+    if (isCorrect && res && res.success !== false) {
+      setSolvedIds((prev) => {
+        const next = new Set(prev)
+        next.add(String(q.id))
+        return next
       })
     }
-  }, [selected, questions, dbCategory, topic])
+  }, [selected, dbCategory, topic])
 
   const score = questions
-    ? questions.filter((q, i) => revealed[i] && selected[i] === q.answer).length
+    ? questions.filter((q) => revealed[q.id] && selected[q.id] === q.answer).length
     : 0
   const done = Object.keys(revealed).length
 
-  const handleBack = useCallback(() => {
-    if (questions && done > 0) {
-      const pct = Math.round((score / done) * 100)
-      practiceService.recordAssessmentSession({
-        category: dbCategory,
-        topic: topic,
-        totalQuestions: done,
-        correctCount: score,
-        score: pct,
-        timeSpentSeconds: done * 40,
-        type: 'Practice',
+  const filteredQuestions = questions
+    ? questions.filter((q) => {
+        const isSolved = solvedIds.has(String(q.id))
+        if (statusFilter === 'solved') return isSolved
+        if (statusFilter === 'unsolved') return !isSolved
+        return true
       })
-    }
+    : null
+
+  const handleBack = useCallback(() => {
     onClose()
-  }, [questions, done, score, dbCategory, topic, onClose])
+  }, [onClose])
 
   return (
     <div className="pq-panel">
-      <div className="pq-panel-header" style={{ borderColor: accent }}>
+      <div className="pq-panel-header">
         <button className="pq-close-btn" onClick={handleBack}>← Back</button>
         <div className="pq-panel-title">
-          <span className="pq-topic-tag" style={{ background: `${accent}22`, color: accent }}>{topic}</span>
+          <span className="pq-topic-tag">{topic}</span>
         </div>
         {questions && questions.length > 0 && (
-          <span className="pq-score">{score}/{done} correct</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            {['all', 'unsolved', 'solved'].map((f) => (
+              <button
+                key={f}
+                type="button"
+                onClick={() => setStatusFilter(f)}
+                style={{
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: '999px',
+                  border: '1px solid var(--border-color, #ddd)',
+                  background: statusFilter === f ? 'var(--accent, #E4A16A)' : 'transparent',
+                  color: statusFilter === f ? '#fff' : 'inherit',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textTransform: 'capitalize',
+                }}
+              >
+                {f}
+              </button>
+            ))}
+            <span className="pq-score">{score}/{done} correct</span>
+          </div>
         )}
       </div>
 
       <div className="pq-body">
         {questions === null && (
           <div className="pq-loading">
-            <div className="pq-spinner" style={{ borderTopColor: accent }} />
+            <div className="pq-spinner" />
             <span>Loading questions…</span>
           </div>
         )}
@@ -246,24 +291,39 @@ function QuestionPractice({ topic, categoryId, accent, onClose }) {
 
         {loadError === 'topic_fallback' && questions && questions.length > 0 && (
           <div className="pq-notice">
-            ℹ️ No questions tagged for <em>{topic}</em> yet. Showing random <em>{CATEGORY_DB_MAP[categoryId]}</em> questions.
+            No questions tagged for <em>{topic}</em> yet. Showing random <em>{CATEGORY_DB_MAP[categoryId]}</em> questions.
           </div>
         )}
 
-        {questions && questions.length > 0 && (
+        {filteredQuestions && filteredQuestions.length === 0 && questions && questions.length > 0 && (
+          <div className="pq-empty">
+            <p>No <strong>{statusFilter}</strong> questions in this topic.</p>
+          </div>
+        )}
+
+        {filteredQuestions && filteredQuestions.length > 0 && (
           <div className="pq-question-list">
-            {questions.map((q, qi) => {
-              const isRevealed = !!revealed[qi]
-              const userPick = selected[qi]
+            {filteredQuestions.map((q, qi) => {
+              const isRevealed = !!revealed[q.id]
+              const userPick = selected[q.id]
+              const isSolved = solvedIds.has(String(q.id))
               return (
                 <div key={q.id} className={`pq-question-card ${isRevealed ? 'pq-revealed' : ''}`}>
                   <div className="pq-q-header">
-                    <span className="pq-q-num" style={{ background: `${accent}22`, color: accent }}>Q{qi + 1}</span>
-                    {isRevealed && (
-                      <span className={`pq-q-result ${userPick === q.answer ? 'correct' : 'wrong'}`}>
-                        {userPick === q.answer ? '✓ Correct' : '✗ Incorrect'}
+                    <span className="pq-q-num">Q{qi + 1}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <span
+                        className={`pq-q-result ${isSolved ? 'correct' : ''}`}
+                        style={!isSolved ? { background: 'rgba(148,163,184,0.16)', color: '#64748b' } : undefined}
+                      >
+                        {isSolved ? 'SOLVED' : 'UNSOLVED'}
                       </span>
-                    )}
+                      {isRevealed && (
+                        <span className={`pq-q-result ${userPick === q.answer ? 'correct' : 'wrong'}`}>
+                          {userPick === q.answer ? '✓ Correct' : '✗ Incorrect'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <p className="pq-q-text">{q.question}</p>
                   <div className="pq-options">
@@ -280,8 +340,7 @@ function QuestionPractice({ topic, categoryId, accent, onClose }) {
                         <button
                           key={oi}
                           className={cls}
-                          style={userPick === oi && !isRevealed ? { borderColor: accent } : {}}
-                          onClick={() => handleSelect(qi, oi)}
+                          onClick={() => handleSelect(q.id, oi)}
                           disabled={isRevealed}
                         >
                           <span className="pq-opt-letter">{String.fromCharCode(65 + oi)}</span>
@@ -294,9 +353,8 @@ function QuestionPractice({ topic, categoryId, accent, onClose }) {
                     <div className="pq-check-row">
                       <button
                         className="pq-check-btn"
-                        style={{ background: accent }}
-                        onClick={() => handleCheck(qi)}
-                        disabled={selected[qi] === undefined}
+                        onClick={() => handleCheck(q)}
+                        disabled={selected[q.id] === undefined}
                       >
                         Check Answer
                       </button>
@@ -336,7 +394,6 @@ export default function Practice() {
           <QuestionPractice
             topic={activeTopic}
             categoryId={activeCategory.id}
-            accent={activeCategory.accent}
             onClose={() => setActiveTopic(null)}
           />
         </div>
@@ -351,20 +408,11 @@ export default function Practice() {
 
         <div className={`practice-layout ${activeCategory ? 'practice-layout--selected' : ''}`}>
 
-          {/* LEFT: topics of the selected category (all visible, no inner scroll) */}
+          {/* LEFT: topics of the selected category */}
           {activeCategory && (
-            <section
-              className="practice-panel"
-              key={activeCategory.id}
-              style={{ '--accent': activeCategory.accent }}
-            >
+            <section className="practice-panel" key={activeCategory.id}>
               <header className="practice-panel__header">
-                <span
-                  className="practice-panel__icon"
-                  style={{ background: `${activeCategory.accent}22` }}
-                >
-                  {activeCategory.icon}
-                </span>
+                <span className="practice-panel__icon">{activeCategory.icon}</span>
                 <div>
                   <h2>{activeCategory.label}</h2>
                   <p>{activeCategory.items.length} topics — pick one to start</p>
@@ -383,13 +431,12 @@ export default function Practice() {
             </section>
           )}
 
-          {/* RIGHT: the 4 category cards, one under another */}
+          {/* RIGHT: category cards, stacked */}
           <nav className="practice-grid" aria-label="Practice categories">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 className={`practice-card ${activeId === cat.id ? 'practice-card--active' : ''}`}
-                style={{ '--accent': cat.accent }}
                 onClick={() => setActiveId(cat.id)}
                 aria-pressed={activeId === cat.id}
               >

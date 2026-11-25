@@ -5,7 +5,9 @@
  * Handles uploading resumes to Cloudinary & MySQL via Spring Boot backend.
  */
 
-const BASE_URL = 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/resume'
+import { API_BASE_URL } from '../config/apiConfig'
+
+const BASE_URL = `${API_BASE_URL}/api/resume`
 const TOKEN_KEY = 'jwt_token'
 
 /**

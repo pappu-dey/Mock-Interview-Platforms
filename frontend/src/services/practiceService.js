@@ -6,7 +6,7 @@ import { authFetch } from '../api/api'
  */
 async function recordQuestionAnswered({ questionId, category, topic, isCorrect, selectedOption, score }) {
   try {
-    return await authFetch('/api/practice/submit-answer', {
+    const res = await authFetch('/api/practice/submit-answer', {
       method: 'POST',
       body: JSON.stringify({
         questionId,
@@ -17,9 +17,11 @@ async function recordQuestionAnswered({ questionId, category, topic, isCorrect, 
         score,
       }),
     })
+    window.dispatchEvent(new CustomEvent('practice-stats-updated'))
+    return res
   } catch (err) {
     console.warn('Could not record question answer to backend:', err)
-    return { success: false }
+    return { success: false, error: err.message }
   }
 }
 
@@ -38,7 +40,7 @@ async function recordAssessmentSession({
   type = 'Practice',
 }) {
   try {
-    return await authFetch('/api/practice/submit-session', {
+    const res = await authFetch('/api/practice/submit-session', {
       method: 'POST',
       body: JSON.stringify({
         category,
@@ -52,9 +54,11 @@ async function recordAssessmentSession({
         type,
       }),
     })
+    window.dispatchEvent(new CustomEvent('practice-stats-updated'))
+    return res
   } catch (err) {
     console.warn('Could not record assessment session to backend:', err)
-    return { success: false }
+    return { success: false, error: err.message }
   }
 }
 

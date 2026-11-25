@@ -9,6 +9,8 @@ import java.util.Optional;
 
 public interface DailyActivityRepository extends JpaRepository<DailyActivity, Integer> {
 
+    List<DailyActivity> findByUser_UserIdOrderByActivityDateDesc(Integer userId);
+
     List<DailyActivity> findByUser_UserIdAndActivityDateBetween(
             Integer userId, LocalDate startDate, LocalDate endDate);
 

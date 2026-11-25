@@ -8,6 +8,7 @@ import com.mockinterview.mock_interview.repository.AnswerRepository;
 import com.mockinterview.mock_interview.repository.DailyActivityRepository;
 import com.mockinterview.mock_interview.repository.InterviewPerformanceRepository;
 import com.mockinterview.mock_interview.repository.InterviewSessionRepository;
+import com.mockinterview.mock_interview.repository.UserQuestionProgressRepository;
 import com.mockinterview.mock_interview.service.DashboardService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
-import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -26,104 +26,79 @@ public class DashboardServiceImpl implements DashboardService {
     private final InterviewPerformanceRepository performanceRepository;
     private final AnswerRepository answerRepository;
     private final DailyActivityRepository dailyActivityRepository;
+    private final UserQuestionProgressRepository userQuestionProgressRepository;
 
     public DashboardServiceImpl(InterviewSessionRepository sessionRepository,
                                 InterviewPerformanceRepository performanceRepository,
                                 AnswerRepository answerRepository,
-                                DailyActivityRepository dailyActivityRepository) {
+                                DailyActivityRepository dailyActivityRepository,
+                                UserQuestionProgressRepository userQuestionProgressRepository) {
         this.sessionRepository = sessionRepository;
         this.performanceRepository = performanceRepository;
         this.answerRepository = answerRepository;
         this.dailyActivityRepository = dailyActivityRepository;
+        this.userQuestionProgressRepository = userQuestionProgressRepository;
     }
 
     @Override
     public DashboardStatsDto getDashboardStats(Integer userId) {
-
-        // 1. Total interviews
+        // 1. Total interviews / completed sessions
         long totalInterviews = sessionRepository.countByUser_UserId(userId);
 
-        // 2. Questions solved (max of answers count and daily activity sum)
-        long answerCount = answerRepository.countBySession_User_UserId(userId);
-        long activityCount = dailyActivityRepository
-                .findByUser_UserIdAndActivityDateBetween(userId, LocalDate.now().minusYears(1), LocalDate.now())
-                .stream()
+        // 2. Questions solved from UserQuestionProgress (unique solved) & DailyActivity
+        long solvedProgressCount = userQuestionProgressRepository.countByUser_UserIdAndStatus(userId, "SOLVED");
+        List<DailyActivity> allActivities = dailyActivityRepository.findByUser_UserIdOrderByActivityDateDesc(userId);
+        long activitySolvedSum = allActivities.stream()
                 .mapToLong(a -> a.getQuestionsSolved() != null ? a.getQuestionsSolved() : 0)
                 .sum();
-        long questionsSolved = Math.max(answerCount, activityCount);
+        long questionsSolved = Math.max(solvedProgressCount, activitySolvedSum);
 
         // 3. Average score from performance records or answer records
         List<InterviewPerformance> performances =
                 performanceRepository.findByUser_UserIdOrderBySession_StartTimeDesc(userId);
-        double averageScore;
+        double averageScore = 0.0;
         if (!performances.isEmpty()) {
             averageScore = performances.stream()
                     .filter(p -> p.getOverallScore() != null)
                     .mapToDouble(InterviewPerformance::getOverallScore)
                     .average()
                     .orElse(0.0);
-        } else if (answerCount > 0) {
-            averageScore = answerRepository.findBySession_User_UserId(userId).stream()
-                    .filter(a -> a.getScore() != null)
-                    .mapToDouble(Answer::getScore)
-                    .average()
-                    .orElse(0.0);
         } else {
-            averageScore = 0.0;
+            List<Answer> answers = answerRepository.findBySession_User_UserId(userId);
+            if (!answers.isEmpty()) {
+                averageScore = answers.stream()
+                        .filter(a -> a.getScore() != null)
+                        .mapToDouble(Answer::getScore)
+                        .average()
+                        .orElse(0.0);
+            }
         }
 
-        // 4. Current streak — consecutive days ending today (or yesterday)
-        int currentStreak = calculateStreak(userId);
+        // 4. Activity tracking metrics (from DailyActivity records)
+        LocalDate today = ActivityStatsCalculator.today();
+        int currentStreak = ActivityStatsCalculator.computeCurrentStreak(allActivities, today);
+        int longestStreak = ActivityStatsCalculator.computeLongestStreak(allActivities);
+        int totalActiveDays = ActivityStatsCalculator.computeTotalActiveDays(allActivities);
+        int mockTestsCompleted = ActivityStatsCalculator.computeTotalMockTests(allActivities);
+        int totalActivities = ActivityStatsCalculator.computeTotalActivities(allActivities);
 
-        // 5. Weekly change — how many questions/sessions this week vs last week
-        String weeklyChange = calculateWeeklyChange(userId);
+        // 5. Weekly change
+        String weeklyChange = calculateWeeklyChange(userId, today);
 
         return DashboardStatsDto.builder()
                 .totalInterviews((int) totalInterviews)
                 .averageScore(Math.round(averageScore * 10.0) / 10.0)
                 .questionsSolved((int) questionsSolved)
                 .currentStreak(currentStreak)
+                .longestStreak(longestStreak)
+                .totalActiveDays(totalActiveDays)
+                .mockTestsCompleted(mockTestsCompleted)
+                .totalActivities(totalActivities)
                 .weeklyChange(weeklyChange)
                 .build();
     }
 
-    // ─── helpers ─────────────────────────────────────────────────────────────
-
-    private int calculateStreak(Integer userId) {
-        LocalDate today = LocalDate.now();
-        // Pull up to 90 days of history
-        List<DailyActivity> activities = dailyActivityRepository
-                .findByUser_UserIdAndActivityDateBetween(userId, today.minusDays(90), today);
-
-        if (activities.isEmpty()) return 0;
-
-        // Sort descending
-        activities.sort(Comparator.comparing(DailyActivity::getActivityDate).reversed());
-
-        int streak = 0;
-        LocalDate expected = today;
-
-        for (DailyActivity a : activities) {
-            int solved = a.getQuestionsSolved() != null ? a.getQuestionsSolved() : 0;
-            int sess = a.getSessionsCount() != null ? a.getSessionsCount() : 0;
-            if (solved == 0 && sess == 0) continue;
-
-            if (a.getActivityDate().equals(expected)) {
-                streak++;
-                expected = expected.minusDays(1);
-            } else if (streak == 0 && a.getActivityDate().equals(today.minusDays(1))) {
-                // Allow streak starting from yesterday
-                streak++;
-                expected = today.minusDays(2);
-            } else {
-                break;
-            }
-        }
-        return streak;
-    }
-
-    private String calculateWeeklyChange(Integer userId) {
-        LocalDate today = LocalDate.now();
+    private String calculateWeeklyChange(Integer userId, LocalDate today) {
         LocalDate thisWeekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         LocalDate lastWeekStart = thisWeekStart.minusWeeks(1);
         LocalDate lastWeekEnd = thisWeekStart.minusDays(1);
@@ -133,18 +108,10 @@ public class DashboardServiceImpl implements DashboardService {
         List<DailyActivity> lastWeek = dailyActivityRepository
                 .findByUser_UserIdAndActivityDateBetween(userId, lastWeekStart, lastWeekEnd);
 
-        int thisCount = thisWeek.stream()
-                .mapToInt(a -> a.getSessionsCount() != null ? a.getSessionsCount() : 0)
-                .sum();
-        int lastCount = lastWeek.stream()
-                .mapToInt(a -> a.getSessionsCount() != null ? a.getSessionsCount() : 0)
-                .sum();
+        int thisCount = ActivityStatsCalculator.computeTotalActivities(thisWeek);
+        int lastCount = ActivityStatsCalculator.computeTotalActivities(lastWeek);
 
         int diff = thisCount - lastCount;
-        if (diff >= 0) {
-            return "+" + diff + " this wk";
-        } else {
-            return diff + " this wk";
-        }
+        return (diff >= 0 ? "+" : "") + diff + " this wk";
     }
 }

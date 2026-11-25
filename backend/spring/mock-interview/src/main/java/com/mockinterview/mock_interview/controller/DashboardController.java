@@ -8,9 +8,11 @@ import com.mockinterview.mock_interview.repository.AnswerRepository;
 import com.mockinterview.mock_interview.repository.InterviewSessionRepository;
 import com.mockinterview.mock_interview.repository.UserRepository;
 import com.mockinterview.mock_interview.service.DashboardService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -104,29 +106,26 @@ public class DashboardController {
                 sessionRepository.findByUser_UserIdOrderByStartTimeDesc(userId);
 
         if (sessions.isEmpty()) {
-            return ResponseEntity.ok(List.of(
-                    Map.of("label", "Java", "height", 52, "color", "var(--accent-light)"),
-                    Map.of("label", "DSA", "height", 78, "color", "var(--accent)"),
-                    Map.of("label", "SQL", "height", 64, "color", "#EFE2D3"),
-                    Map.of("label", "System", "height", 90, "color", "#C97F4A"),
-                    Map.of("label", "HR", "height", 45, "color", "var(--accent-light)"),
-                    Map.of("label", "Behav.", "height", 70, "color", "var(--accent)")
-            ));
+            return ResponseEntity.ok(List.of());
         }
 
         double avg = sessions.stream()
                 .filter(s -> s.getOverallScore() != null)
                 .mapToDouble(InterviewSession::getOverallScore)
                 .average()
-                .orElse(75.0);
+                .orElse(0.0);
+
+        if (avg == 0.0) {
+            return ResponseEntity.ok(List.of());
+        }
 
         List<Map<String, Object>> chart = List.of(
-                Map.of("label", "Java", "height", (int) Math.min(100, Math.max(30, avg * 0.85)), "color", "var(--accent-light)"),
-                Map.of("label", "DSA", "height", (int) Math.min(100, Math.max(30, avg * 1.05)), "color", "var(--accent)"),
-                Map.of("label", "SQL", "height", (int) Math.min(100, Math.max(30, avg * 0.90)), "color", "#EFE2D3"),
-                Map.of("label", "System", "height", (int) Math.min(100, Math.max(30, avg * 0.95)), "color", "#C97F4A"),
-                Map.of("label", "HR", "height", (int) Math.min(100, Math.max(30, avg * 0.80)), "color", "var(--accent-light)"),
-                Map.of("label", "Behav.", "height", (int) Math.min(100, Math.max(30, avg * 0.92)), "color", "var(--accent)")
+                Map.of("label", "Java", "height", (int) Math.min(100, Math.max(10, avg * 0.85)), "color", "var(--accent-light)"),
+                Map.of("label", "DSA", "height", (int) Math.min(100, Math.max(10, avg * 1.05)), "color", "var(--accent)"),
+                Map.of("label", "SQL", "height", (int) Math.min(100, Math.max(10, avg * 0.90)), "color", "#EFE2D3"),
+                Map.of("label", "System", "height", (int) Math.min(100, Math.max(10, avg * 0.95)), "color", "#C97F4A"),
+                Map.of("label", "HR", "height", (int) Math.min(100, Math.max(10, avg * 0.80)), "color", "var(--accent-light)"),
+                Map.of("label", "Behav.", "height", (int) Math.min(100, Math.max(10, avg * 0.92)), "color", "var(--accent)")
         );
 
         return ResponseEntity.ok(chart);
@@ -148,29 +147,7 @@ public class DashboardController {
                 .collect(Collectors.toList());
 
         if (upcomingSessions.isEmpty()) {
-            return ResponseEntity.ok(List.of(
-                    Map.of(
-                            "title", "Technical Mock Interview",
-                            "subtitle", "with Ananya Kapoor",
-                            "time", "3:00 PM",
-                            "initials", "TM",
-                            "color", "#C97F4A"
-                    ),
-                    Map.of(
-                            "title", "HR Round Practice",
-                            "subtitle", "with Rahul Mehta",
-                            "time", "6:30 PM",
-                            "initials", "HR",
-                            "color", "#E4A16A"
-                    ),
-                    Map.of(
-                            "title", "SQL Quiz Review",
-                            "subtitle", "Self-paced",
-                            "time", "Tomorrow",
-                            "initials", "SQ",
-                            "color", "#8C8C8C"
-                    )
-            ));
+            return ResponseEntity.ok(List.of());
         }
 
         Map<String, String> companyColors = Map.of(
@@ -212,19 +189,30 @@ public class DashboardController {
                 .filter(s -> s.getOverallScore() != null)
                 .mapToDouble(InterviewSession::getOverallScore)
                 .average()
-                .orElse(78.0);
+                .orElse(0.0);
 
-        int tcsScore = (int) Math.min(98, Math.max(40, baseScore * 1.05));
-        int infyScore = (int) Math.min(95, Math.max(40, baseScore * 0.85));
-        int wiproScore = (int) Math.min(92, Math.max(40, baseScore * 0.70));
-        int accScore = (int) Math.min(99, Math.max(40, baseScore * 1.15));
+        if (baseScore == 0.0) {
+            List<Answer> answers = answerRepository.findBySession_User_UserId(userId);
+            if (!answers.isEmpty()) {
+                baseScore = answers.stream()
+                        .filter(a -> a.getScore() != null)
+                        .mapToDouble(Answer::getScore)
+                        .average()
+                        .orElse(0.0);
+            }
+        }
+
+        int tcsScore = baseScore > 0 ? (int) Math.min(98, Math.max(10, baseScore * 1.05)) : 0;
+        int infyScore = baseScore > 0 ? (int) Math.min(95, Math.max(10, baseScore * 0.85)) : 0;
+        int wiproScore = baseScore > 0 ? (int) Math.min(92, Math.max(10, baseScore * 0.70)) : 0;
+        int accScore = baseScore > 0 ? (int) Math.min(99, Math.max(10, baseScore * 1.15)) : 0;
 
         List<Map<String, Object>> companies = List.of(
                 Map.of(
                         "name", "TCS",
                         "role", "Software Engineer",
                         "readiness", tcsScore,
-                        "status", tcsScore >= 75 ? "Ready" : "In Progress",
+                        "status", tcsScore == 0 ? "Not Started" : (tcsScore >= 75 ? "Ready" : "In Progress"),
                         "logoBg", "#3C6FBB",
                         "initials", "TCS"
                 ),
@@ -232,7 +220,7 @@ public class DashboardController {
                         "name", "Infosys",
                         "role", "Systems Engineer",
                         "readiness", infyScore,
-                        "status", infyScore >= 75 ? "Ready" : "In Progress",
+                        "status", infyScore == 0 ? "Not Started" : (infyScore >= 75 ? "Ready" : "In Progress"),
                         "logoBg", "#1C6DB0",
                         "initials", "IN"
                 ),
@@ -240,7 +228,7 @@ public class DashboardController {
                         "name", "Wipro",
                         "role", "Project Engineer",
                         "readiness", wiproScore,
-                        "status", wiproScore >= 75 ? "Ready" : "In Progress",
+                        "status", wiproScore == 0 ? "Not Started" : (wiproScore >= 75 ? "Ready" : "In Progress"),
                         "logoBg", "#5B2B82",
                         "initials", "WI"
                 ),
@@ -248,7 +236,7 @@ public class DashboardController {
                         "name", "Accenture",
                         "role", "Associate Developer",
                         "readiness", accScore,
-                        "status", accScore >= 75 ? "Ready" : "In Progress",
+                        "status", accScore == 0 ? "Not Started" : (accScore >= 75 ? "Ready" : "In Progress"),
                         "logoBg", "#7C2A8C",
                         "initials", "AC"
                 )
@@ -259,18 +247,13 @@ public class DashboardController {
 
     // ─── helper ──────────────────────────────────────────────────────────────
     private Integer resolveUserId() {
-        try {
-            var auth = SecurityContextHolder.getContext().getAuthentication();
-            if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
-                String email = auth.getName();
-                var userOpt = userRepository.findByEmail(email);
-                if (userOpt.isPresent()) {
-                    return userOpt.get().getUserId();
-                }
-            }
-        } catch (Exception ignored) {}
-        return userRepository.findByEmail("test@test.com")
-                .map(User::getUserId)
-                .orElseGet(() -> userRepository.findAll().stream().findFirst().map(User::getUserId).orElse(1));
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getName())) {
+            String email = auth.getName();
+            return userRepository.findByEmail(email)
+                    .map(User::getUserId)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+        }
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Authentication required");
     }
 }

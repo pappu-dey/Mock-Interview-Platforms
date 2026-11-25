@@ -20,5 +20,7 @@ public interface UserQuestionProgressRepository extends JpaRepository<UserQuesti
 
     long countByUser_UserId(Integer userId);
 
+    long countByUser_UserIdAndStatus(Integer userId, String status);
+
     long countByUser_UserIdAndTopicIgnoreCase(Integer userId, String topic);
 }
