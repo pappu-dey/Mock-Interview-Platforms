@@ -15,12 +15,12 @@ import React, {
   useRef,
   useCallback,
 } from 'react'
+import { API_BASE_URL } from '../../config/apiConfig'
 import './Tripa.css'
 
 // ─── Config ────────────────────────────────────────────────────────────────────
 const GEMINI_API_KEY  = import.meta.env.VITE_GEMINI_API_KEY
-// Using gemini-3.6-flash as requested by the API error message
-const GEMINI_MODEL    = 'gemini-3.6-flash'
+const GEMINI_MODEL    = 'gemini-2.5-flash'
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`
 
 // ─── System instruction — restricts Tripa to education topics only ─────────────
@@ -136,20 +136,38 @@ export default function Tripa() {
     el.style.height = Math.min(el.scrollHeight, 100) + 'px'
   }
 
-  // ── Call Gemini API ──────────────────────────────────────────────────────────
+  // ── Call Gemini API (via gitignored backend key first, .env fallback) ───────
   const callGemini = useCallback(async (userText, currentHistory) => {
-    if (!GEMINI_API_KEY) {
-      return '⚠️ Gemini API key is missing. Please check your .env file.'
+    try {
+      const backendRes = await fetch(`${API_BASE_URL}/api/ai/tripa`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userText,
+          history: currentHistory,
+          systemInstruction: SYSTEM_INSTRUCTION,
+        }),
+      })
+      const backendData = await backendRes.json().catch(() => ({}))
+      if (backendRes.ok && backendData.reply) {
+        return backendData.reply
+      }
+      if (!GEMINI_API_KEY || GEMINI_API_KEY.startsWith('<YOUR_')) {
+        throw new Error(backendData.error || `API error ${backendRes.status}`)
+      }
+    } catch (backendErr) {
+      if (!GEMINI_API_KEY || GEMINI_API_KEY.startsWith('<YOUR_')) {
+        throw backendErr
+      }
     }
 
-    // Contents: previous history + current user message
+    // Fallback to VITE_GEMINI_API_KEY from gitignored .env
     const contents = [
       ...currentHistory,
       { role: 'user', parts: [{ text: userText }] },
     ]
 
     const body = {
-      // systemInstruction is the correct top-level field for Gemini 2.0
       systemInstruction: {
         role: 'user',
         parts: [{ text: SYSTEM_INSTRUCTION }],

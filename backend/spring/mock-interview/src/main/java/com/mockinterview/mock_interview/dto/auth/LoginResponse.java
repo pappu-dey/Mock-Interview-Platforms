@@ -5,11 +5,25 @@ public class LoginResponse {
     private String token;
     private String message;
     private String role;
+    private String fullName;
 
     public LoginResponse(String token, String message, String role) {
+        this(token, message, role, "");
+    }
+
+    public LoginResponse(String token, String message, String role, String fullName) {
         this.token = token;
         this.message = message;
         this.role = role;
+        this.fullName = fullName;
+    }
+
+    public String getFullName() {
+        return fullName;
+    }
+
+    public void setFullName(String fullName) {
+        this.fullName = fullName;
     }
 
     public String getToken() {

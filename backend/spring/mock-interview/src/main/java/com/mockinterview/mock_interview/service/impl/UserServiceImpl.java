@@ -88,11 +88,16 @@ public class UserServiceImpl implements UserService {
         // 3. Generate JWT
         String jwtToken = jwtService.generateToken(userDetails);
 
-        // 4. Fetch the Role from DB to include in the response
+        // 4. Fetch the Role & Profile name from DB to include in the response
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return new LoginResponse(jwtToken, "Login successful", user.getRole().name());
+        String fullName = profileRepository.findByUser_UserId(user.getUserId())
+                .map(Profile::getFullName)
+                .filter(name -> name != null && !name.isBlank())
+                .orElse("");
+
+        return new LoginResponse(jwtToken, "Login successful", user.getRole().name(), fullName);
     }
 
     // ─── Forgot Password ─────────────────────────────────────────────────────────

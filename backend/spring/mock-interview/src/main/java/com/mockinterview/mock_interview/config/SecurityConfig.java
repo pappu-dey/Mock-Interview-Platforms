@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/companies/**").permitAll()
                         .requestMatchers("/api/questions/**").permitAll()
+                        .requestMatchers("/api/ai/**").permitAll()
                         // Everything else (including /api/practice/**, /api/dashboard/**, /api/performance/**) requires a valid JWT
                         .anyRequest().authenticated())
 

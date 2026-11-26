@@ -63,8 +63,8 @@ export default function App() {
     const currentUser = authService.getCurrentUser()
     setIsAuthed(authed)
     setUser(currentUser)
-    // After login, navigate to the dashboard
-    if (authed) {
+    // After login, navigate to the dashboard unless already on /amiadmin or /admin
+    if (authed && route !== '/amiadmin' && route !== '/admin') {
       navigate('/dashboard')
     }
   }
@@ -85,19 +85,29 @@ export default function App() {
   // ── Page rendering ──────────────────────────────────────────────────────────
   let page
   const isAdmin = isAuthed && authService.isAdmin()
+  const isAdminRoute = route === '/amiadmin' || route === '/admin'
 
-  // ── /admin route — strictly guarded ────────────────────────────────────────
-  if (route === '/admin') {
+  // ── /amiadmin & /admin route — strictly guarded by ADMIN role ──────────────
+  if (isAdminRoute) {
     if (!isAuthed) {
-      // Not logged in → send to login
-      navigate('/login')
+      // Not logged in → show login
       page = <AuthPage onLoginSuccess={syncAuth} />
     } else if (!isAdmin) {
-      // Logged in but not the admin account → back to dashboard
-      navigate('/dashboard')
-      page = <Dashboard onNavigate={handleNavigate} onLogout={handleLogout} user={user} theme={theme} toggleTheme={toggleTheme} />
+      // Logged in but not an ADMIN role → show "you are not an admin"
+      page = (
+        <div className="admin-denied" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '2rem' }}>
+          <div className="admin-denied__icon" style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🚫</div>
+          <h1>you are not an admin</h1>
+          <p style={{ opacity: 0.75, marginBottom: '1.5rem' }}>This area is restricted to users with the ADMIN role.</p>
+          <button
+            className="admin-denied__btn"
+            onClick={() => handleNavigate('/dashboard')}
+          >
+            ← Back to Dashboard
+          </button>
+        </div>
+      )
     } else {
-      // Only test@test.com reaches here
       page = <AdminPanel onNavigate={handleNavigate} />
     }
   } else if (route === '/practice') {
@@ -134,7 +144,7 @@ export default function App() {
 
   return (
     <>
-      {!isAuthed && route !== '/admin' && (
+      {!isAuthed && !isAdminRoute && (
         <Navbar
           isAuthenticated={isAuthed}
           user={user}
@@ -143,8 +153,8 @@ export default function App() {
         />
       )}
       <main>{page}</main>
-      {/* Tripa AI chatbot — shown on all pages except /admin */}
-      {route !== '/admin' && <Tripa />}
+      {/* Tripa AI chatbot — shown on all pages except admin */}
+      {!isAdminRoute && <Tripa />}
     </>
   )
 }

@@ -663,6 +663,9 @@ export default function AdminPanel({ onNavigate }) {
 
   // ── Secondary auth guard ─────────────────────────────────────────────────────
   const isAuthorised = authService.isAdmin()
+  const currentUser = authService.getCurrentUser()
+  const adminEmail = currentUser?.email || 'Admin'
+  const adminName = currentUser?.fullName || adminEmail
 
   // ── Live clock ───────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -704,8 +707,8 @@ export default function AdminPanel({ onNavigate }) {
     return (
       <div className="admin-denied">
         <div className="admin-denied__icon">🚫</div>
-        <h1>Access Denied</h1>
-        <p>This area is restricted to authorised administrators only.</p>
+        <h1>you are not an admin</h1>
+        <p>This area is restricted to users with the ADMIN role.</p>
         <button
           className="admin-denied__btn"
           id="admin-denied-go-home"
@@ -743,8 +746,8 @@ export default function AdminPanel({ onNavigate }) {
         <div className="admin-sidebar__badge">
           <div className="admin-sidebar__badge-dot" />
           <div className="admin-sidebar__badge-info">
-            <span>Super Admin</span>
-            <span>test@test.com</span>
+            <span>{currentUser?.role || 'ADMIN'}</span>
+            <span>{adminEmail}</span>
           </div>
         </div>
 
@@ -851,9 +854,9 @@ export default function AdminPanel({ onNavigate }) {
             <div
               className="admin-topbar__avatar"
               id="admin-avatar"
-              title="test@test.com"
+              title={adminEmail}
             >
-              TA
+              {initials(adminName)}
             </div>
             <div style={{ fontSize: 11, color: 'var(--ad-text-3)', fontWeight: 500, lineHeight: 1.4, textAlign: 'right' }}>
               <div>{time.toLocaleDateString()}</div>

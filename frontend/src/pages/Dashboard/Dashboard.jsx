@@ -13,19 +13,13 @@ import Support from "../Support/Support";
 import Profile from "../Profile/Profile";
 import MockAptitudeWrapper from "../MockAptitude/index";
 
-// ── derive display name & initials from email ──────────────────────────────
-function nameFromEmail(email = '') {
-  if (!email) return 'User'
-  const local = email.split('@')[0]
-  return local
-    .split(/[._-]/)
-    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-    .join(' ')
-}
-function initialsFromEmail(email = '') {
-  const parts = (email.split('@')[0] || '').split(/[._-]/)
+// ── derive initials from user's display name ─────────────────────────────────
+function initialsFromName(name = '') {
+  const clean = (name || '').trim()
+  if (!clean) return 'U'
+  const parts = clean.split(/\s+/).filter(Boolean)
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase()
-  return (email.slice(0, 2) || '??').toUpperCase()
+  return clean.slice(0, 2).toUpperCase()
 }
 
 // ---- small inline icon set (no external icon library required) ----
@@ -244,16 +238,21 @@ function Sidebar({ activeSection, onSectionChange, theme, toggleTheme, isOpen, o
   );
 }
 
-function Header({ user }) {
-  const displayName = nameFromEmail(user?.email)
-  const avatarInitials = initialsFromEmail(user?.email)
+function Header({ user, fullName, onOpenProfile }) {
+  const cleanName = (fullName || user?.fullName || '').trim()
+  const displayName = cleanName || 'User'
+  const avatarInitials = initialsFromName(cleanName)
   return (
     <div className="header">
       <div>
         <h1>Dashboard</h1>
-        <p className="sub">Welcome back, {displayName} — let's continue your interview prep.</p>
+        <p className="sub">
+          {cleanName
+            ? `Welcome ${cleanName} — let's continue your interview prep.`
+            : "Welcome — let's continue your interview prep."}
+        </p>
       </div>
-      <button className="profile-pill">
+      <button className="profile-pill" onClick={onOpenProfile} type="button">
         <div className="avatar">{avatarInitials}</div>
         <div>
           <div className="name">{displayName}</div>
@@ -428,10 +427,10 @@ function Recommendations() {
 }
 
 // ── inline content rendered for each section ──────────────────────────────
-function DashboardHome({ user, onNavigate, stats, chartData, companies, loading, error }) {
+function DashboardHome({ user, fullName, onOpenProfile, onNavigate, stats, chartData, companies, loading, error }) {
   return (
     <>
-      <Header user={user} />
+      <Header user={user} fullName={fullName} onOpenProfile={onOpenProfile} />
       {error && (
         <div style={{ marginBottom: "1rem", padding: "0.75rem 1rem", borderRadius: "10px", background: "rgba(239,68,68,0.12)", color: "#dc2626", fontSize: "0.9rem" }}>
           {error}
@@ -449,6 +448,7 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
   const [activeSection, setActiveSection] = useState("dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
+  const [fullName, setFullName] = useState(() => (user?.fullName || '').trim());
   const [stats, setStats] = useState(EMPTY_STATS);
   const [chartData, setChartData] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -473,6 +473,11 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
 
         if (statsRes.status === 'fulfilled' && statsRes.value) {
           const d = statsRes.value;
+          if (typeof d.fullName === 'string' && d.fullName.trim()) {
+            const trimmed = d.fullName.trim();
+            setFullName(trimmed);
+            localStorage.setItem('user_name', trimmed);
+          }
           const streak = d.currentStreak ?? 0;
           const avg = Math.round(d.averageScore ?? 0);
           setStats([
@@ -554,6 +559,8 @@ export default function Dashboard({ onNavigate, onLogout, user: userProp, theme,
         return (
           <DashboardHome
             user={user}
+            fullName={fullName}
+            onOpenProfile={() => setActiveSection("profile")}
             onNavigate={onNavigate}
             stats={stats}
             chartData={chartData}

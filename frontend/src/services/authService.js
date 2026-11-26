@@ -22,6 +22,7 @@ const KEYS = {
   TOKEN: 'jwt_token',
   ROLE: 'user_role',
   EMAIL: 'user_email',
+  NAME: 'user_name',
 }
 
 // ─── Low-level request helper ──────────────────────────────────────────────────
@@ -47,10 +48,15 @@ async function post(endpoint, body) {
 }
 
 // ─── Session helpers ───────────────────────────────────────────────────────────
-function saveSession({ token, role, email }) {
+function saveSession({ token, role, email, fullName }) {
   localStorage.setItem(KEYS.TOKEN, token)
-  localStorage.setItem(KEYS.ROLE, role)
-  localStorage.setItem(KEYS.EMAIL, email)
+  localStorage.setItem(KEYS.ROLE, role || '')
+  localStorage.setItem(KEYS.EMAIL, email || '')
+  if (fullName) {
+    localStorage.setItem(KEYS.NAME, fullName)
+  } else {
+    localStorage.removeItem(KEYS.NAME)
+  }
 }
 
 /**
@@ -74,22 +80,23 @@ function isAuthenticated() {
 }
 
 /**
- * Returns true ONLY for the admin account (test@test.com).
- * Used as the sole gate for the /admin route.
+ * Returns true ONLY for users with the ADMIN role.
  */
 function isAdmin() {
-  return localStorage.getItem(KEYS.EMAIL) === 'test@test.com'
+  const role = localStorage.getItem(KEYS.ROLE)
+  return Boolean(role && role.trim().toUpperCase() === 'ADMIN')
 }
 
 /**
  * Returns the current user's stored credentials.
- * @returns {{ email: string|null, role: string|null, token: string|null }}
+ * @returns {{ email: string|null, role: string|null, token: string|null, fullName: string|null }}
  */
 function getCurrentUser() {
   return {
     email: localStorage.getItem(KEYS.EMAIL),
     role: localStorage.getItem(KEYS.ROLE),
     token: localStorage.getItem(KEYS.TOKEN),
+    fullName: localStorage.getItem(KEYS.NAME),
   }
 }
 
@@ -117,7 +124,7 @@ async function register(email, password, role) {
 async function login(email, password) {
   const data = await post('/login', { email, password })
   localStorage.removeItem('mock_practice_state')
-  saveSession({ token: data.token, role: data.role, email })
+  saveSession({ token: data.token, role: data.role, email, fullName: data.fullName })
   return { ...data, email }
 }
 

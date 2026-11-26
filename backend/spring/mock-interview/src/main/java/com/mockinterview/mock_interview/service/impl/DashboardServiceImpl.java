@@ -4,10 +4,12 @@ import com.mockinterview.mock_interview.dto.dashboard.DashboardStatsDto;
 import com.mockinterview.mock_interview.entity.Answer;
 import com.mockinterview.mock_interview.entity.DailyActivity;
 import com.mockinterview.mock_interview.entity.InterviewPerformance;
+import com.mockinterview.mock_interview.entity.Profile;
 import com.mockinterview.mock_interview.repository.AnswerRepository;
 import com.mockinterview.mock_interview.repository.DailyActivityRepository;
 import com.mockinterview.mock_interview.repository.InterviewPerformanceRepository;
 import com.mockinterview.mock_interview.repository.InterviewSessionRepository;
+import com.mockinterview.mock_interview.repository.ProfileRepository;
 import com.mockinterview.mock_interview.repository.UserQuestionProgressRepository;
 import com.mockinterview.mock_interview.service.DashboardService;
 import org.springframework.stereotype.Service;
@@ -27,17 +29,20 @@ public class DashboardServiceImpl implements DashboardService {
     private final AnswerRepository answerRepository;
     private final DailyActivityRepository dailyActivityRepository;
     private final UserQuestionProgressRepository userQuestionProgressRepository;
+    private final ProfileRepository profileRepository;
 
     public DashboardServiceImpl(InterviewSessionRepository sessionRepository,
                                 InterviewPerformanceRepository performanceRepository,
                                 AnswerRepository answerRepository,
                                 DailyActivityRepository dailyActivityRepository,
-                                UserQuestionProgressRepository userQuestionProgressRepository) {
+                                UserQuestionProgressRepository userQuestionProgressRepository,
+                                ProfileRepository profileRepository) {
         this.sessionRepository = sessionRepository;
         this.performanceRepository = performanceRepository;
         this.answerRepository = answerRepository;
         this.dailyActivityRepository = dailyActivityRepository;
         this.userQuestionProgressRepository = userQuestionProgressRepository;
+        this.profileRepository = profileRepository;
     }
 
     @Override
@@ -85,7 +90,13 @@ public class DashboardServiceImpl implements DashboardService {
         // 5. Weekly change
         String weeklyChange = calculateWeeklyChange(userId, today);
 
+        String fullName = profileRepository.findByUser_UserId(userId)
+                .map(Profile::getFullName)
+                .filter(name -> name != null && !name.isBlank())
+                .orElse("");
+
         return DashboardStatsDto.builder()
+                .fullName(fullName)
                 .totalInterviews((int) totalInterviews)
                 .averageScore(Math.round(averageScore * 10.0) / 10.0)
                 .questionsSolved((int) questionsSolved)
