@@ -4,27 +4,18 @@
  * Reads and writes profile data via GET /api/profile and PUT /api/profile
  * (see profileService.js). Resume storage is handled entirely by
  * resumeService.js — this component never assumes *how* or *where* the file
- * ends up (cloud storage, DB row, etc.), it just asks resumeService for the
- * current resume and displays "Your resume is saved". That keeps the UI
- * decoupled from the storage implementation.
+ * ends up, it just asks resumeService for the current resume and displays
+ * "Your resume is saved".
  *
- * Resume upload lives in its own card and auto-fills the profile form
- * (name, phone, links, skills, college, branch, graduation year) by
- * extracting text from a PDF/DOCX resume client-side and pattern-matching
- * common fields. The user always reviews the auto-filled values before
- * saving — nothing is written to the profile until they hit "Save Changes".
+ * Resume upload lives in its own card and auto-fills the profile form by
+ * extracting text from a PDF/DOCX resume client-side. The user always reviews
+ * the auto-filled values before saving.
  *
- * Theme: the page supports light and dark mode via a `data-theme` attribute
- * on the page root (see Profile.css). The choice is persisted to
- * localStorage under `profile-theme`; on first visit it falls back to the
- * user's OS-level `prefers-color-scheme`.
+ * Theme: follows the site's own light/dark mode (see Profile.css) — no
+ * separate toggle on this page.
  *
  * Requires (run once in the project):
  *   npm install pdfjs-dist mammoth
- *
- * DB columns mapped:
- *   full_name, phone, college, branch, graduation_year,
- *   skills, linkedin_url, leetcode_url, github_url
  *
  * Props:
  *   user        object   — { email, role, token } from authService.getCurrentUser()
@@ -35,6 +26,8 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import Button from '../../components/Button'
 import profileService from '../../services/profileService'
 import resumeService from '../../services/resumeService'
+import dashboardService from '../../services/dashboardService'
+import performanceService from '../../services/performanceService'
 import './Profile.css'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -47,11 +40,9 @@ function getInitials(name = '', email = '') {
 
 const URL_RE = /^https?:\/\/[^\s]+\.[^\s]+$/i
 const PHONE_RE = /^[+()\d][\d\s()+-]{6,18}$/
-const THEME_STORAGE_KEY = 'profile-theme'
 
 function getViewableResumeUrl(url) {
   if (!url) return '#'
-  // If it's a Cloudinary raw upload or PDF/DOC, route through Google Docs viewer for guaranteed inline viewing in a new tab
   if (url.includes('/raw/upload/') || url.toLowerCase().includes('.pdf') || url.toLowerCase().includes('.doc')) {
     return `https://docs.google.com/viewer?url=${encodeURIComponent(url)}`
   }
@@ -67,18 +58,6 @@ function validateField(field, value) {
     return PHONE_RE.test(value) ? '' : 'Enter a valid phone number'
   }
   return ''
-}
-
-function getInitialTheme() {
-  if (typeof window === 'undefined') return 'light'
-  try {
-    const stored = window.localStorage.getItem(THEME_STORAGE_KEY)
-    if (stored === 'light' || stored === 'dark') return stored
-  } catch {
-    // localStorage unavailable (privacy mode, etc.) — fall through to OS preference
-  }
-  if (window.matchMedia?.('(prefers-color-scheme: dark)').matches) return 'dark'
-  return 'light'
 }
 
 const KNOWN_ROLES = ['student', 'company', 'admin']
@@ -97,14 +76,6 @@ const EMPTY_FORM = {
 
 const PROFILE_FIELDS = Object.keys(EMPTY_FORM)
 
-// ── Sample activity (replace with real endpoint later) ───────────────────────
-const SAMPLE_ACTIVITY = [
-  { id: 1, icon: '🎤', type: 'interview', title: 'Mock Interview — Data Structures', sub: '2 days ago  •  45 min', score: 87 },
-  { id: 2, icon: '🎤', type: 'interview', title: 'Mock Interview — System Design', sub: '5 days ago  •  60 min', score: 74 },
-  { id: 3, icon: '📋', type: 'application', title: 'Applied to Acme Corp — Frontend Eng', sub: '1 week ago', score: null },
-  { id: 4, icon: '🎤', type: 'interview', title: 'Mock Interview — Behavioural Round', sub: '2 weeks ago  •  30 min', score: 91 },
-]
-
 function scoreClass(s) {
   if (s === null) return ''
   if (s >= 85) return 'activity-score--great'
@@ -113,11 +84,6 @@ function scoreClass(s) {
 }
 
 // ─── Resume parsing ─────────────────────────────────────────────────────────
-// A small, dependency-light heuristic parser. It extracts raw text from the
-// uploaded PDF/DOCX, then pattern-matches common resume fields. It is not
-// perfect — that's why extracted values are always shown for user review
-// before saving, rather than being saved automatically.
-
 const COMMON_SKILLS = [
   'javascript', 'typescript', 'python', 'java', 'c++', 'c#', 'go', 'rust',
   'react', 'redux', 'next.js', 'vue', 'angular', 'node.js', 'express',
@@ -170,9 +136,6 @@ function extractFieldsFromText(text) {
   const found = {}
   const clean = text.replace(/\r/g, '')
 
-  // Email (used only to help find the name line, not written to the form)
-  const emailMatch = clean.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)
-
   // Phone
   const phoneMatch = clean.match(/(?:\+?\d{1,3}[\s-]?)?(?:\(?\d{3,5}\)?[\s-]?){2,4}\d{2,4}/g)
   if (phoneMatch) {
@@ -188,8 +151,7 @@ function extractFieldsFromText(text) {
   const leetcode = clean.match(/https?:\/\/(www\.)?leetcode\.com\/[^\s,)]+/i)
   if (leetcode) found.leetcodeUrl = leetcode[0].replace(/[.,]$/, '')
 
-  // Name — best guess: first non-empty line that isn't an email/phone/url
-  // and looks like "First Last" (2-4 title-case words).
+  // Name — first line that looks like "First Last" (2-4 title-case words)
   const lines = clean.split('\n').map((l) => l.trim()).filter(Boolean)
   for (const line of lines.slice(0, 8)) {
     if (/@|http|www\.|\d{5,}/.test(line)) continue
@@ -208,7 +170,7 @@ function extractFieldsFromText(text) {
   const branchHit = BRANCH_KEYWORDS.find((b) => new RegExp(b, 'i').test(clean))
   if (branchHit) found.branch = branchHit
 
-  // Graduation year — pick the most recent plausible year mentioned
+  // Graduation year — most recent plausible year mentioned
   const years = [...clean.matchAll(/20[1-3]\d/g)].map((m) => parseInt(m[0], 10))
   if (years.length) found.graduationYear = String(Math.max(...years))
 
@@ -227,7 +189,6 @@ function extractFieldsFromText(text) {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function Profile({ user = {}, onLogout = () => { } }) {
-  const [theme, setTheme] = useState(getInitialTheme)
   const [editing, setEditing] = useState(false)
   const [toast, setToast] = useState(null)
   const [saving, setSaving] = useState(false)
@@ -246,36 +207,30 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
   const resumeInputRef = useRef(null)
   const avatarInputRef = useRef(null)
 
-  // ── Form state initialised to empty; filled on mount from API ────────────
   const [form, setForm] = useState(EMPTY_FORM)
-  // Snapshot of last saved state — used to detect dirty edits
   const [savedForm, setSavedForm] = useState(EMPTY_FORM)
+  const [stats, setStats] = useState({ interviews: 0, score: 0, solved: 0, streak: 0 })
+  const [recentActivity, setRecentActivity] = useState([])
 
   const isDirty = useMemo(
     () => JSON.stringify(form) !== JSON.stringify(savedForm),
     [form, savedForm]
   )
 
-  // ── Profile completeness (used for the ring around the avatar) ───────────
+  // ── Profile completeness (ring around the avatar) ────────────────────────
   const completeness = useMemo(() => {
     const filled = PROFILE_FIELDS.filter((f) => String(savedForm[f] || '').trim()).length
     return Math.round((filled / PROFILE_FIELDS.length) * 100)
   }, [savedForm])
 
-  // ── Persist theme choice + apply to the page root ─────────────────────────
-  useEffect(() => {
-    try {
-      window.localStorage.setItem(THEME_STORAGE_KEY, theme)
-    } catch {
-      // ignore — theme still applies for this session even if it can't persist
-    }
-  }, [theme])
-
-  const toggleTheme = useCallback(() => {
-    setTheme((t) => (t === 'dark' ? 'light' : 'dark'))
+  // ── Toast helper ──────────────────────────────────────────────────────────
+  const showToast = useCallback((message, tone = 'success') => {
+    clearTimeout(toastTimer.current)
+    setToast({ message, tone })
+    toastTimer.current = setTimeout(() => setToast(null), 2800)
   }, [])
 
-  // ── Fetch profile & resume on mount ──────────────────────────────────────
+  // ── Fetch profile, resume, & real DB stats on mount ───────────────────────
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -283,7 +238,9 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
     Promise.allSettled([
       profileService.getProfile(),
       resumeService.getResume(),
-    ]).then(([profileRes, resumeRes]) => {
+      dashboardService.getDashboardStats(),
+      performanceService.getRecentSessions(),
+    ]).then(([profileRes, resumeRes, statsRes, sessionsRes]) => {
       if (cancelled) return
 
       if (profileRes.status === 'fulfilled' && profileRes.value) {
@@ -301,6 +258,9 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
         }
         setForm(filled)
         setSavedForm(filled)
+        if (filled.fullName.trim()) {
+          localStorage.setItem('user_name', filled.fullName.trim())
+        }
         if (data.avatarUrl) setAvatarPreview(data.avatarUrl)
       } else if (profileRes.status === 'rejected') {
         showToast(profileRes.reason?.message || 'Could not load profile', 'error')
@@ -308,6 +268,29 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
 
       if (resumeRes.status === 'fulfilled' && resumeRes.value) {
         setResumeData(resumeRes.value)
+      }
+
+      if (statsRes.status === 'fulfilled' && statsRes.value) {
+        const d = statsRes.value
+        setStats({
+          interviews: d.totalInterviews ?? 0,
+          score: Math.round(d.averageScore ?? 0),
+          solved: d.questionsSolved ?? 0,
+          streak: d.currentStreak ?? 0,
+        })
+      }
+
+      if (sessionsRes.status === 'fulfilled' && Array.isArray(sessionsRes.value)) {
+        setRecentActivity(
+          sessionsRes.value.map((s, idx) => ({
+            id: s.sessionId || s.id || idx + 1,
+            icon: s.type === 'Mock' ? '🎤' : '📝',
+            type: s.type || 'Practice',
+            title: s.topic || s.roleName || 'Practice Session',
+            sub: `${s.date || 'Recent'}${s.time && s.time !== '—' ? `  •  ${s.time}` : ''}`,
+            score: s.score != null ? Math.round(s.score) : null,
+          }))
+        )
       }
     }).finally(() => {
       if (!cancelled) setLoading(false)
@@ -328,27 +311,6 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
   useEffect(() => () => {
     clearTimeout(toastTimer.current)
     clearTimeout(pulseTimer.current)
-  }, [])
-
-  // ── Derived stats from sample activity ───────────────────────────────────
-  const stats = useMemo(() => {
-    const interviews = SAMPLE_ACTIVITY.filter((a) => a.type === 'interview')
-    const avgScore = interviews.length
-      ? Math.round(interviews.reduce((s, a) => s + a.score, 0) / interviews.length)
-      : 0
-    return {
-      interviews: interviews.length,
-      score: avgScore,
-      applied: SAMPLE_ACTIVITY.filter((a) => a.type === 'application').length,
-      streak: 7,
-    }
-  }, [])
-
-  // ── Toast helper ──────────────────────────────────────────────────────────
-  const showToast = useCallback((message, tone = 'success') => {
-    clearTimeout(toastTimer.current)
-    setToast({ message, tone })
-    toastTimer.current = setTimeout(() => setToast(null), 2800)
   }, [])
 
   // ── Validation ────────────────────────────────────────────────────────────
@@ -388,6 +350,12 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
       }
       setForm(filled)
       setSavedForm(filled)
+      if (filled.fullName.trim()) {
+        localStorage.setItem('user_name', filled.fullName.trim())
+      } else {
+        localStorage.removeItem('user_name')
+      }
+      window.dispatchEvent(new CustomEvent('practice-stats-updated'))
       setEditing(false)
       setAutofilledFields(new Set())
       showToast('✓ Profile saved!')
@@ -432,9 +400,6 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
   }
 
   // ── Resume upload → parsed for auto-fill, then handed to resumeService ───
-  // Note: this component doesn't know or care where resumeService persists
-  // the file — that detail is fully encapsulated behind getResume() /
-  // uploadResume() / deleteResume(). The UI only ever says "saved".
   const handleResumeButtonClick = () => resumeInputRef.current?.click()
 
   const handleResumeFile = async (e) => {
@@ -545,32 +510,18 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
     return cls.join(' ')
   }
 
+  const skillList = form.skills.split(',').map((s) => s.trim()).filter(Boolean)
+
   // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="profile-page" data-theme={theme}>
+    <div className="profile-page">
       <div className="profile-inner">
 
-        {/* ── Page heading + theme toggle ── */}
         <div className="profile-page-header">
           <p className="section-title">My Profile</p>
-          <button
-            type="button"
-            className="theme-toggle"
-            onClick={toggleTheme}
-            role="switch"
-            aria-checked={theme === 'dark'}
-            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            <span className="theme-toggle__thumb" aria-hidden="true">
-              {theme === 'dark' ? '🌙' : '☀️'}
-            </span>
-          </button>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            HERO CARD — avatar · name · role badges · completeness ring
-        ═══════════════════════════════════════════════════════════════════ */}
+        {/* ═════════ HERO CARD ═════════ */}
         <div className="profile-card">
           <div className="profile-hero">
 
@@ -583,26 +534,28 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
                 {avatarPreview
                   ? <img className="profile-avatar__img" src={avatarPreview} alt="" />
                   : getInitials(form.fullName, user.email)}
-                {editing && (
-                  <button
-                    type="button"
-                    className="profile-avatar__edit"
-                    onClick={handleAvatarButtonClick}
-                    title="Change photo"
-                    aria-label="Change profile photo"
-                  >
-                    📷
-                  </button>
-                )}
-                <input
-                  ref={avatarInputRef}
-                  className="profile-avatar__input"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  tabIndex={-1}
-                />
               </div>
+
+              {editing && (
+                <button
+                  type="button"
+                  className="profile-avatar__edit"
+                  onClick={handleAvatarButtonClick}
+                  title="Change photo"
+                  aria-label="Change profile photo"
+                >
+                  📷
+                </button>
+              )}
+              <input
+                ref={avatarInputRef}
+                className="profile-avatar__input"
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                tabIndex={-1}
+              />
+
               {!loading && (
                 <span className="profile-avatar-ring__pct" aria-hidden="true">
                   {completeness}%
@@ -657,8 +610,8 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
               <div className="stat-label">Avg. Score</div>
             </div>
             <div className="stat-item">
-              <div className="stat-value">{stats.applied}</div>
-              <div className="stat-label">Jobs Applied</div>
+              <div className="stat-value">{stats.solved}</div>
+              <div className="stat-label">Questions Solved</div>
             </div>
             <div className="stat-item">
               <div className="stat-value">{stats.streak}d</div>
@@ -667,11 +620,7 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
           </div>
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            RESUME CARD — its own card, independent of edit mode.
-            Only ever tells the user "your resume is saved" — the storage
-            mechanism is an implementation detail of resumeService.
-        ═══════════════════════════════════════════════════════════════════ */}
+        {/* ═════════ RESUME CARD ═════════ */}
         {!loading && (
           <div className={`profile-card resume-card${resumeJustSaved ? ' resume-card--pulse' : ''}`}>
             <div className="card-header">
@@ -756,9 +705,7 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
           </div>
         )}
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            DETAILS CARD — view or edit info
-        ═══════════════════════════════════════════════════════════════════ */}
+        {/* ═════════ DETAILS CARD ═════════ */}
         <div className="profile-card">
           <div className="card-header">
             <h2>Personal Details</h2>
@@ -770,17 +717,15 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
           </div>
 
           {loading ? (
-            /* ── Skeleton loader ─────────────────────────────────────────── */
-            <div className="profile-form" style={{ opacity: 0.6 }}>
+            <div className="profile-form">
               {[...Array(6)].map((_, i) => (
                 <div key={i} className="form-field">
-                  <div className="form-label skeleton-block" style={{ height: 12, width: 80 }} />
-                  <div className="form-input skeleton-input">&nbsp;</div>
+                  <div className="skeleton-block" style={{ height: 12, width: 80 }} />
+                  <div className="skeleton-input">&nbsp;</div>
                 </div>
               ))}
             </div>
           ) : editing ? (
-            /* ── Edit Form ─────────────────────────────────────────────── */
             <form className="profile-form" onSubmit={handleSave} id="profile-edit-form" noValidate>
 
               <div className="profile-form-row">
@@ -935,7 +880,6 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
             </form>
 
           ) : (
-            /* ── View Mode ─────────────────────────────────────────────── */
             <div className="profile-info-grid">
               {[
                 { label: 'Full Name', value: form.fullName },
@@ -961,20 +905,13 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
                 </div>
               ))}
 
-              {/* Skills spans full width */}
-              {form.skills && (
+              {skillList.length > 0 && (
                 <div className="info-field info-field--wide">
                   <div className="info-field__label">Skills</div>
                   <div className="info-field__value">
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.25rem' }}>
-                      {form.skills.split(',').map((s) => s.trim()).filter(Boolean).map((skill) => (
-                        <span key={skill} style={{
-                          background: 'var(--p-100)', color: 'var(--primary-dark)',
-                          padding: '0.2rem 0.65rem', borderRadius: '999px',
-                          fontSize: '0.75rem', fontWeight: 600
-                        }}>
-                          {skill}
-                        </span>
+                    <div className="skill-list">
+                      {skillList.map((skill) => (
+                        <span key={skill} className="skill-chip">{skill}</span>
                       ))}
                     </div>
                   </div>
@@ -983,7 +920,7 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
 
               {!form.fullName && !form.phone && !form.college && !form.skills && !resumeData && (
                 <div className="info-field info-field--wide">
-                  <div className="profile-empty" style={{ padding: '1rem 0' }}>
+                  <div className="profile-empty">
                     <div className="profile-empty-icon">📄</div>
                     <p>Your profile is looking empty — try the <strong>Resume</strong> card above to fill it in seconds.</p>
                   </div>
@@ -993,9 +930,7 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
           )}
         </div>
 
-        {/* ═══════════════════════════════════════════════════════════════════
-            ACTIVITY CARD
-        ═══════════════════════════════════════════════════════════════════ */}
+        {/* ═════════ ACTIVITY CARD ═════════ */}
         <div className="profile-card">
           <div className="card-header">
             <h2>Recent Activity</h2>
@@ -1006,14 +941,14 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
             </Button>
           </div>
 
-          {SAMPLE_ACTIVITY.length === 0 ? (
+          {recentActivity.length === 0 ? (
             <div className="profile-empty">
               <div className="profile-empty-icon">📭</div>
               <p>No activity yet — start a mock interview!</p>
             </div>
           ) : (
             <ul className="activity-list" aria-label="Recent activity">
-              {SAMPLE_ACTIVITY.map((item) => (
+              {recentActivity.map((item) => (
                 <li className="activity-item" key={item.id}>
                   <span className="activity-icon" aria-hidden="true">{item.icon}</span>
                   <div className="activity-content">
@@ -1032,7 +967,7 @@ export default function Profile({ user = {}, onLogout = () => { } }) {
           )}
         </div>
 
-        {/* ── Account / Danger zone ── */}
+        {/* ═════════ ACCOUNT ═════════ */}
         <div className="profile-card">
           <div className="card-header"><h2>Account</h2></div>
           <div className="account-actions">
