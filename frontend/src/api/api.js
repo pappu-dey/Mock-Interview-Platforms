@@ -25,6 +25,9 @@ export async function authFetch(path, options = {}) {
   })
 
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem('jwt_token')
+    }
     const errBody = await res.json().catch(() => ({}))
     const error = new Error(errBody.message || errBody.error || `Request failed with status ${res.status}`)
     error.status = res.status

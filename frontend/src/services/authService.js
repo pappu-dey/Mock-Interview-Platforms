@@ -65,7 +65,12 @@ function clearSession() {
  * NOTE: this is a client-side check only — the token is NOT re-verified here.
  */
 function isAuthenticated() {
-  return Boolean(localStorage.getItem(KEYS.TOKEN))
+  const token = localStorage.getItem(KEYS.TOKEN)
+  if (token === 'mock-jwt-token-for-test-user') {
+    clearSession()
+    return false
+  }
+  return Boolean(token)
 }
 
 /**

@@ -6,6 +6,7 @@ import com.mockinterview.mock_interview.repository.ProfileRepository;
 import com.mockinterview.mock_interview.repository.QuestionRepository;
 import com.mockinterview.mock_interview.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
@@ -20,27 +21,39 @@ public class DataInitializer implements CommandLineRunner {
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JdbcTemplate jdbcTemplate;
 
     public DataInitializer(CompanyRepository companyRepository,
                            QuestionRepository questionRepository,
                            UserRepository userRepository,
                            ProfileRepository profileRepository,
-                           PasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder,
+                           JdbcTemplate jdbcTemplate) {
         this.companyRepository = companyRepository;
         this.questionRepository = questionRepository;
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
     public void run(String... args) throws Exception {
+        ensureSchemaConstraints();
         seedDefaultUser();
         if (companyRepository.count() == 0) {
             seedCompanies();
         }
         if (questionRepository.count() == 0) {
             seedQuestions();
+        }
+    }
+
+    private void ensureSchemaConstraints() {
+        try {
+            jdbcTemplate.execute("ALTER TABLE interview_sessions MODIFY COLUMN role_id INT NULL");
+        } catch (Exception ignored) {
+            // Already nullable or table not yet created
         }
     }
 
