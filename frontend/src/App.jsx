@@ -33,16 +33,22 @@ function useTheme() {
 }
 
 // ─── Thin router helper ────────────────────────────────────────────────────────
+function normalizePath(pathname) {
+  if (!pathname || pathname === '/') return '/'
+  return pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
+}
+
 function useRoute() {
-  const [route, setRoute] = useState(window.location.pathname || '/')
+  const [route, setRoute] = useState(() => normalizePath(window.location.pathname))
 
   const navigate = (href) => {
-    window.history.pushState({}, '', href)
-    setRoute(href)
+    const normalized = normalizePath(href)
+    window.history.pushState({}, '', normalized)
+    setRoute(normalized)
   }
 
   useEffect(() => {
-    const handlePop = () => setRoute(window.location.pathname)
+    const handlePop = () => setRoute(normalizePath(window.location.pathname))
     window.addEventListener('popstate', handlePop)
     return () => window.removeEventListener('popstate', handlePop)
   }, [])

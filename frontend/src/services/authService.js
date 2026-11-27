@@ -84,7 +84,9 @@ function isAuthenticated() {
  */
 function isAdmin() {
   const role = localStorage.getItem(KEYS.ROLE)
-  return Boolean(role && role.trim().toUpperCase() === 'ADMIN')
+  if (!role) return false
+  const normalized = role.trim().toUpperCase()
+  return normalized === 'ADMIN' || normalized === 'ROLE_ADMIN'
 }
 
 /**
