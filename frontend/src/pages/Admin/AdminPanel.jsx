@@ -6,58 +6,20 @@
  * on mount as a secondary security layer.
  */
 
-import React, { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import authService from '../../services/authService'
+import { authFetch } from '../../api/api'
 import {
   CompaniesSection,
-  AptitudeSection,
-  ReasoningSection,
-  GeneralQsSection,
-  JavaQsSection,
-  SqlQsSection,
   QuestionsBankSection,
 } from './AdminContentSections'
 import './AdminPanel.css'
 
-// ─── Mock data ─────────────────────────────────────────────────────────────────
-const MOCK_USERS = [
-  { id: 1, name: 'Alice Johnson',   email: 'alice@example.com',   role: 'student', status: 'active',   joined: '2025-01-12', interviews: 24, score: 88 },
-  { id: 2, name: 'Bob Martinez',    email: 'bob@techcorp.com',     role: 'company', status: 'active',   joined: '2025-02-03', interviews: 0,  score: 0  },
-  { id: 3, name: 'Clara Singh',     email: 'clara@example.com',    role: 'student', status: 'active',   joined: '2025-03-17', interviews: 11, score: 74 },
-  { id: 4, name: 'David Chen',      email: 'david@startups.io',    role: 'company', status: 'inactive', joined: '2025-04-05', interviews: 0,  score: 0  },
-  { id: 5, name: 'Emma Wilson',     email: 'emma@example.com',     role: 'student', status: 'active',   joined: '2025-05-20', interviews: 38, score: 92 },
-  { id: 6, name: 'Frank Nakamura',  email: 'frank@example.com',    role: 'student', status: 'pending',  joined: '2025-06-11', interviews: 2,  score: 55 },
-  { id: 7, name: 'Grace Lee',       email: 'grace@bigco.com',      role: 'company', status: 'active',   joined: '2025-07-08', interviews: 0,  score: 0  },
-  { id: 8, name: 'Henry Brown',     email: 'henry@example.com',    role: 'student', status: 'inactive', joined: '2025-08-01', interviews: 7,  score: 63 },
-]
-
-const MOCK_ACTIVITY = [
-  { id: 1, icon: '🎯', color: 'green',  text: 'Emma Wilson completed a React interview',        time: '2m ago'   },
-  { id: 2, icon: '👤', color: 'blue',   text: 'New company account: Grace Lee (bigco.com)',      time: '14m ago'  },
-  { id: 3, icon: '🚨', color: 'red',    text: 'Failed login attempt on david@startups.io',       time: '31m ago'  },
-  { id: 4, icon: '📄', color: 'orange', text: 'Clara Singh uploaded a new resume',               time: '1h ago'   },
-  { id: 5, icon: '✅', color: 'green',  text: 'Frank Nakamura account verified',                 time: '2h ago'   },
-  { id: 6, icon: '💬', color: 'purple', text: 'Support ticket #47 resolved',                     time: '3h ago'   },
-  { id: 7, icon: '📊', color: 'blue',   text: 'Weekly analytics report generated',               time: '5h ago'   },
-  { id: 8, icon: '🔒', color: 'red',    text: 'David Chen account suspended by admin',           time: '6h ago'   },
-]
-
-const CHART_DATA = [
-  { label: 'Mon', users: 65, interviews: 40 },
-  { label: 'Tue', users: 78, interviews: 55 },
-  { label: 'Wed', users: 90, interviews: 70 },
-  { label: 'Thu', users: 72, interviews: 48 },
-  { label: 'Fri', users: 88, interviews: 63 },
-  { label: 'Sat', users: 45, interviews: 30 },
-  { label: 'Sun', users: 52, interviews: 35 },
-]
-const MAX_CHART = Math.max(...CHART_DATA.map((d) => Math.max(d.users, d.interviews)))
-
 const NAV_ITEMS = [
   // ── Dashboard ──
   { id: 'overview',    icon: '🏠', label: 'Overview',       badge: null,  group: 'main'    },
-  { id: 'users',       icon: '👥', label: 'Users',          badge: '8',   group: 'main'    },
-  { id: 'interviews',  icon: '🎯', label: 'Interviews',     badge: '3',   group: 'main', badgeColor: 'green' },
+  { id: 'users',       icon: '👥', label: 'Users',          badge: null,  group: 'main'    },
+  { id: 'interviews',  icon: '🎯', label: 'Interviews',     badge: null,  group: 'main', badgeColor: 'green' },
   { id: 'analytics',  icon: '📊', label: 'Analytics',      badge: null,  group: 'main'    },
   { id: 'reports',    icon: '📋', label: 'Reports',         badge: null,  group: 'main'    },
   { id: 'settings',   icon: '⚙️', label: 'Settings',        badge: null,  group: 'main'    },
@@ -90,26 +52,24 @@ function RoleBadge({ role }) {
 }
 
 // ─── Overview Section ─────────────────────────────────────────────────────────
-function OverviewSection({ onAddQuestion }) {
-  const stats = [
-    { icon: '👥', color: 'orange', label: 'Total Users',       value: '1,248', change: '+12%', up: true  },
-    { icon: '🎯', color: 'green',  label: 'Interviews Today',  value: '47',    change: '+8%',  up: true  },
-    { icon: '⚡', color: 'blue',   label: 'Active Sessions',   value: '23',    change: '-3%',  up: false },
-    { icon: '🏆', color: 'purple', label: 'Avg. Pass Rate',    value: '76%',   change: '+5%',  up: true  },
+function OverviewSection({ onAddQuestion, dashboardStats, weeklyActivity, recentActivity }) {
+  const maxChart = Math.max(1, ...weeklyActivity.map((day) => Math.max(day.users, day.interviews)))
+  const cards = [
+    { icon: '👥', color: 'orange', label: 'Total Users', value: dashboardStats.totalUsers },
+    { icon: '🎯', color: 'green', label: 'Interview Sessions', value: dashboardStats.totalSessions },
+    { icon: '⚡', color: 'blue', label: 'Active Sessions', value: dashboardStats.activeSessions },
+    { icon: '🏆', color: 'purple', label: 'Average Score', value: `${dashboardStats.averageScore}%` },
   ]
 
   return (
     <>
       {/* Stat Cards */}
       <div className="admin-stats-grid">
-        {stats.map((s, i) => (
+        {cards.map((s, i) => (
           <div key={i} className="admin-stat-card" style={{ animationDelay: `${i * 80}ms` }}>
             <div className="admin-stat-card__shimmer" />
             <div className="admin-stat-card__top">
               <div className={`admin-stat-card__icon ${s.color}`}>{s.icon}</div>
-              <span className={`admin-stat-card__change ${s.up ? 'up' : 'down'}`}>
-                {s.up ? '↑' : '↓'} {s.change}
-              </span>
             </div>
             <div className="admin-stat-card__value">{s.value}</div>
             <div className="admin-stat-card__label">{s.label}</div>
@@ -129,23 +89,23 @@ function OverviewSection({ onAddQuestion }) {
           </div>
           <div className="admin-card__body">
             <div className="admin-chart">
-              {CHART_DATA.map((d, i) => (
+              {weeklyActivity.map((d, i) => (
                 <div key={i} className="admin-chart__bar-wrap">
                   <div
                     className="admin-chart__bar secondary"
-                    style={{ height: `${(d.interviews / MAX_CHART) * 100}%`, animationDelay: `${i * 60}ms` }}
+                    style={{ height: `${(d.interviews / maxChart) * 100}%`, animationDelay: `${i * 60}ms` }}
                     title={`Interviews: ${d.interviews}`}
                   />
                   <div
                     className="admin-chart__bar"
-                    style={{ height: `${(d.users / MAX_CHART) * 100}%`, animationDelay: `${i * 60 + 30}ms` }}
+                    style={{ height: `${(d.users / maxChart) * 100}%`, animationDelay: `${i * 60 + 30}ms` }}
                     title={`Users: ${d.users}`}
                   />
                 </div>
               ))}
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-around', marginTop: 6 }}>
-              {CHART_DATA.map((d, i) => (
+              {weeklyActivity.map((d, i) => (
                 <div key={i} className="admin-chart__label">{d.label}</div>
               ))}
             </div>
@@ -167,12 +127,12 @@ function OverviewSection({ onAddQuestion }) {
           </div>
           <div className="admin-card__body" style={{ padding: '10px 20px' }}>
             <div className="admin-activity">
-              {MOCK_ACTIVITY.map((a, i) => (
+              {recentActivity.map((a, i) => (
                 <div key={a.id} className="admin-activity__item" style={{ animationDelay: `${i * 60}ms` }}>
                   <div className={`admin-activity__icon ${a.color}`}>{a.icon}</div>
                   <div className="admin-activity__text">
                     <strong>{a.text}</strong>
-                    <span>Platform activity</span>
+                    <span>{a.time ? new Date(a.time).toLocaleString() : ''}</span>
                   </div>
                   <div className="admin-activity__time">{a.time}</div>
                 </div>
@@ -190,10 +150,10 @@ function OverviewSection({ onAddQuestion }) {
           </div>
           <div className="admin-card__body">
             {[
-              { icon: '🎓', label: 'Students',      val: '1,042', pct: 0.83 },
-              { icon: '🏢', label: 'Companies',     val: '206',   pct: 0.17 },
-              { icon: '✅', label: 'Verified Users', val: '918',   pct: 0.73 },
-              { icon: '💾', label: 'Storage Used',  val: '4.7 GB',pct: 0.47 },
+              { icon: '🎓', label: 'Students', val: dashboardStats.students },
+              { icon: '🏢', label: 'Company Profiles', val: dashboardStats.totalCompanies },
+              { icon: '❓', label: 'Questions', val: dashboardStats.totalQuestions },
+              { icon: '👥', label: 'Active Users', val: dashboardStats.activeUsers },
             ].map((m, i) => (
               <div key={i} className="admin-metric-row">
                 <div className="admin-metric-row__label">
@@ -201,7 +161,7 @@ function OverviewSection({ onAddQuestion }) {
                   <span>{m.label}</span>
                 </div>
                 <div className="admin-metric-row__bar-wrap">
-                  <div className="admin-metric-row__bar-fill" style={{ width: `${m.pct * 100}%` }} />
+                  <div className="admin-metric-row__bar-fill" style={{ width: `${Math.min(100, dashboardStats.totalUsers ? (m.val / dashboardStats.totalUsers) * 100 : 0)}%` }} />
                 </div>
                 <div className="admin-metric-row__val">{m.val}</div>
               </div>
@@ -215,10 +175,10 @@ function OverviewSection({ onAddQuestion }) {
           </div>
           <div className="admin-card__body">
             {[
-              { icon: '🟢', label: 'Passed',       val: '2,301', pct: 0.76 },
-              { icon: '🔴', label: 'Failed',        val: '725',   pct: 0.24 },
-              { icon: '⏱️', label: 'Avg Duration',  val: '42 min',pct: 0.70 },
-              { icon: '🌟', label: 'Avg Score',     val: '78 / 100', pct: 0.78 },
+              { icon: '✅', label: 'Completed', val: dashboardStats.completedSessions, percent: dashboardStats.totalSessions ? dashboardStats.completedSessions / dashboardStats.totalSessions * 100 : 0 },
+              { icon: '🎯', label: 'Active', val: dashboardStats.activeSessions, percent: dashboardStats.totalSessions ? dashboardStats.activeSessions / dashboardStats.totalSessions * 100 : 0 },
+              { icon: '📊', label: 'Total', val: dashboardStats.totalSessions, percent: dashboardStats.totalSessions ? 100 : 0 },
+              { icon: '🌟', label: 'Avg. Score', val: `${dashboardStats.averageScore} / 100`, percent: dashboardStats.averageScore },
             ].map((m, i) => (
               <div key={i} className="admin-metric-row">
                 <div className="admin-metric-row__label">
@@ -226,7 +186,7 @@ function OverviewSection({ onAddQuestion }) {
                   <span>{m.label}</span>
                 </div>
                 <div className="admin-metric-row__bar-wrap">
-                  <div className="admin-metric-row__bar-fill" style={{ width: `${m.pct * 100}%` }} />
+                  <div className="admin-metric-row__bar-fill" style={{ width: `${m.percent}%` }} />
                 </div>
                 <div className="admin-metric-row__val">{m.val}</div>
               </div>
@@ -242,11 +202,6 @@ function OverviewSection({ onAddQuestion }) {
             <div className="admin-quick-actions">
               {[
                 { icon: '❓', label: 'Add Question', onClick: onAddQuestion },
-                { icon: '📢', label: 'Announce' },
-                { icon: '📤', label: 'Export'   },
-                { icon: '🗑️', label: 'Clear Cache'},
-                { icon: '🔒', label: 'Lock User' },
-                { icon: '📧', label: 'Email All' },
               ].map((a, i) => (
                 <button
                   key={i}
@@ -267,29 +222,34 @@ function OverviewSection({ onAddQuestion }) {
 }
 
 // ─── Users Section ────────────────────────────────────────────────────────────
-function UsersSection({ showToast }) {
-  const [users, setUsers]         = useState(MOCK_USERS)
+function UsersSection({ users, onRefresh, showToast, adminEmail }) {
   const [search, setSearch]       = useState('')
   const [filterRole, setFilterRole] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
+  const [updating, setUpdating] = useState(null)
 
   const filtered = users.filter((u) => {
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) ||
+    const matchSearch = (u.name || '').toLowerCase().includes(search.toLowerCase()) ||
                         u.email.toLowerCase().includes(search.toLowerCase())
     const matchRole   = filterRole === 'all'   || u.role === filterRole
-    const matchStatus = filterStatus === 'all' || u.status === filterStatus
+    const matchStatus = filterStatus === 'all' || (u.active ? 'active' : 'inactive') === filterStatus
     return matchSearch && matchRole && matchStatus
   })
 
-  function toggleStatus(id) {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.id === id
-          ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' }
-          : u
-      )
-    )
-    showToast('User status updated ✓')
+  async function toggleStatus(user) {
+    setUpdating(user.id)
+    try {
+      await authFetch(`/api/admin/users/${user.id}/status`, {
+        method: 'PUT',
+        body: JSON.stringify({ active: !user.active }),
+      })
+      await onRefresh()
+      showToast(`User ${user.active ? 'deactivated' : 'activated'} ✓`)
+    } catch (error) {
+      showToast(error.message || 'Unable to update user status')
+    } finally {
+      setUpdating(null)
+    }
   }
 
   return (
@@ -299,7 +259,11 @@ function UsersSection({ showToast }) {
           <div className="admin-card__title">👥 User Management</div>
           <div className="admin-card__subtitle">{filtered.length} of {users.length} users shown</div>
         </div>
-        <button className="admin-card__action" id="admin-export-users-btn" onClick={() => showToast('Export started ✓')}>
+        <button
+          className="admin-card__action"
+          id="admin-export-users-btn"
+          onClick={() => downloadCsv('users.csv', [['Name', 'Email', 'Role', 'Status', 'Joined'], ...users.map((user) => [user.name, user.email, user.role, user.active ? 'Active' : 'Inactive', user.joined])])}
+        >
           ↓ Export CSV
         </button>
       </div>
@@ -345,7 +309,7 @@ function UsersSection({ showToast }) {
             {r === 'all' ? 'All Roles' : r.charAt(0).toUpperCase() + r.slice(1)}
           </button>
         ))}
-        {['all','active','inactive','pending'].map((s) => (
+        {['all','active','inactive'].map((s) => (
           <button
             key={s}
             onClick={() => setFilterStatus(s)}
@@ -394,20 +358,20 @@ function UsersSection({ showToast }) {
                   </div>
                 </td>
                 <td><RoleBadge role={u.role} /></td>
-                <td><StatusBadge status={u.status} /></td>
-                <td style={{ color: 'var(--ad-text-2)', fontSize: 12 }}>{u.joined}</td>
+                <td><StatusBadge status={u.active ? 'active' : 'inactive'} /></td>
+                <td style={{ color: 'var(--ad-text-2)', fontSize: 12 }}>{u.joined ? new Date(u.joined).toLocaleDateString() : '—'}</td>
                 <td style={{ color: 'var(--ad-text)', fontWeight: 600 }}>{u.interviews}</td>
                 <td style={{ color: u.score >= 80 ? 'var(--ad-success)' : u.score >= 60 ? 'var(--ad-warning)' : 'var(--ad-text-2)', fontWeight: 600 }}>
                   {u.score > 0 ? `${u.score}%` : '—'}
                 </td>
                 <td>
                   <div className="admin-table__actions">
-                    <button className="admin-table__btn view" onClick={() => showToast(`Viewing ${u.name}'s profile`)}>View</button>
                     <button
                       className="admin-table__btn ban"
-                      onClick={() => toggleStatus(u.id)}
+                      disabled={updating === u.id || u.role === 'admin' || u.email === adminEmail}
+                      onClick={() => toggleStatus(u)}
                     >
-                      {u.status === 'active' ? 'Ban' : 'Activate'}
+                      {updating === u.id ? 'Saving…' : u.active ? 'Deactivate' : 'Activate'}
                     </button>
                   </div>
                 </td>
@@ -428,16 +392,7 @@ function UsersSection({ showToast }) {
 }
 
 // ─── Interviews Section ───────────────────────────────────────────────────────
-function InterviewsSection() {
-  const sessions = [
-    { user: 'Emma Wilson',    email: 'emma@example.com',    topic: 'React & Hooks',          score: 92, duration: '48 min', status: 'completed' },
-    { user: 'Clara Singh',    email: 'clara@example.com',   topic: 'System Design',           score: 74, duration: '55 min', status: 'completed' },
-    { user: 'Frank Nakamura', email: 'frank@example.com',   topic: 'Algorithms & DS',         score: 55, duration: '38 min', status: 'completed' },
-    { user: 'Alice Johnson',  email: 'alice@example.com',   topic: 'Behavioral Round',        score: 88, duration: '32 min', status: 'completed' },
-    { user: 'Henry Brown',    email: 'henry@example.com',   topic: 'Node.js Backend',         score: 63, duration: '42 min', status: 'completed' },
-    { user: 'Test Admin',     email: 'test@test.com',       topic: 'Full Stack Mock',         score: 0,  duration: '—',      status: 'active'    },
-  ]
-
+function InterviewsSection({ sessions }) {
   return (
     <div className="admin-card">
       <div className="admin-card__header">
@@ -458,11 +413,11 @@ function InterviewsSection() {
             </tr>
           </thead>
           <tbody>
-            {sessions.map((s, i) => (
-              <tr key={i}>
+            {sessions.map((s) => (
+              <tr key={s.id}>
                 <td>
                   <div className="admin-table__user">
-                    <div className="admin-table__avatar">{initials(s.user)}</div>
+                    <div className="admin-table__avatar">{initials(s.user || s.email)}</div>
                     <div className="admin-table__user-info">
                       <strong>{s.user}</strong>
                       <span>{s.email}</span>
@@ -479,6 +434,9 @@ function InterviewsSection() {
                 </td>
               </tr>
             ))}
+            {sessions.length === 0 && (
+              <tr><td colSpan={5} style={{ textAlign: 'center', padding: 32, color: 'var(--ad-text-2)' }}>No interview sessions in the database.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -487,16 +445,18 @@ function InterviewsSection() {
 }
 
 // ─── Analytics Section ────────────────────────────────────────────────────────
-function AnalyticsSection() {
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug']
-  const vals   = [320, 480, 390, 620, 540, 710, 830, 920]
-  const maxV   = Math.max(...vals)
+function AnalyticsSection({ monthlyRegistrations, stats }) {
+  const months = monthlyRegistrations.map((item) => item.label)
+  const vals = monthlyRegistrations.map((item) => item.users)
+  const maxV   = Math.max(1, ...vals)
+  const total = vals.reduce((sum, value) => sum + value, 0)
+  const peakIndex = vals.indexOf(maxV)
 
   return (
     <div className="admin-card">
       <div className="admin-card__header">
         <div className="admin-card__title">📊 Growth Analytics</div>
-        <div className="admin-card__subtitle">Monthly user registrations — 2025</div>
+        <div className="admin-card__subtitle">Monthly registrations — last 6 months</div>
       </div>
       <div className="admin-card__body">
         <div style={{ marginBottom: 8, fontSize: 13, color: 'var(--ad-text-2)' }}>Monthly Registrations</div>
@@ -520,10 +480,10 @@ function AnalyticsSection() {
         {/* Summary row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginTop: 24 }}>
           {[
-            { label: 'Total Signups', val: '4,812', icon: '📈' },
-            { label: 'Avg / Month',   val: '601',   icon: '📅' },
-            { label: 'Peak Month',    val: 'Aug',    icon: '🏆' },
-            { label: 'Growth Rate',   val: '+187%',  icon: '🚀' },
+            { label: 'Users in period', val: total, icon: '📈' },
+            { label: 'Total users', val: stats.totalUsers, icon: '👥' },
+            { label: 'Peak month', val: months[peakIndex] || '—', icon: '🏆' },
+            { label: 'Interview sessions', val: stats.totalSessions, icon: '🎯' },
           ].map((m, i) => (
             <div key={i} style={{
               background: 'var(--ad-glass)',
@@ -544,33 +504,44 @@ function AnalyticsSection() {
 }
 
 // ─── Reports Section ──────────────────────────────────────────────────────────
-function ReportsSection({ showToast }) {
+function downloadCsv(filename, rows) {
+  const csv = rows.map((row) => row.map((value) => {
+    const text = String(value ?? '')
+    const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text
+    return `"${safeText.replaceAll('"', '""')}"`
+  }).join(',')).join('\r\n')
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }))
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
+
+function ReportsSection({ users, sessions }) {
   const reports = [
-    { name: 'Monthly User Report',        date: '2025-07-31', size: '2.4 MB', format: 'PDF' },
-    { name: 'Interview Performance Log',  date: '2025-08-01', size: '1.8 MB', format: 'CSV' },
-    { name: 'Revenue Analytics Q2',       date: '2025-06-30', size: '3.1 MB', format: 'XLSX'},
-    { name: 'Support Ticket Summary',     date: '2025-08-05', size: '0.9 MB', format: 'PDF' },
-    { name: 'Security Audit Log',         date: '2025-08-10', size: '5.2 MB', format: 'TXT' },
+    { name: 'Users', count: users.length, icon: '👥', exportRows: [['Name', 'Email', 'Role', 'Status', 'Joined'], ...users.map((user) => [user.name, user.email, user.role, user.active ? 'Active' : 'Inactive', user.joined])] },
+    { name: 'Interview Sessions', count: sessions.length, icon: '🎯', exportRows: [['Candidate', 'Email', 'Topic', 'Score', 'Duration', 'Status'], ...sessions.map((session) => [session.user, session.email, session.topic, session.score, session.duration, session.status])] },
   ]
   return (
     <div className="admin-card">
       <div className="admin-card__header">
         <div className="admin-card__title">📋 Reports</div>
-        <button className="admin-card__action" onClick={() => showToast('Generating new report…')}>+ Generate</button>
+        <div className="admin-card__subtitle">Export current database records as CSV</div>
       </div>
       <div className="admin-card__body">
         {reports.map((r, i) => (
           <div key={i} className="admin-metric-row">
             <div className="admin-metric-row__label">
-              <span>{r.format === 'PDF' ? '📄' : r.format === 'CSV' ? '📊' : r.format === 'XLSX' ? '📗' : '📝'}</span>
+              <span>{r.icon}</span>
               <span>
                 <strong style={{ display: 'block', color: 'var(--ad-text)', fontSize: 13 }}>{r.name}</strong>
-                <span style={{ fontSize: 11, color: 'var(--ad-text-3)' }}>{r.date} · {r.size}</span>
+                <span style={{ fontSize: 11, color: 'var(--ad-text-3)' }}>{r.count} database records</span>
               </span>
             </div>
             <div>
-              <button className="admin-table__btn view" onClick={() => showToast(`Downloading ${r.name}…`)}>
-                ↓ {r.format}
+              <button className="admin-table__btn view" onClick={() => downloadCsv(`${r.name.toLowerCase().replaceAll(' ', '-')}.csv`, r.exportRows)}>
+                ↓ CSV
               </button>
             </div>
           </div>
@@ -581,49 +552,27 @@ function ReportsSection({ showToast }) {
 }
 
 // ─── Settings Section ─────────────────────────────────────────────────────────
-function AdminSettingsSection({ showToast }) {
-  const [notifs, setNotifs]   = useState(true)
-  const [maint,  setMaint]    = useState(false)
-  const [debug,  setDebug]    = useState(false)
-  const [reg,    setReg]      = useState(true)
-
-  function Toggle({ label, desc, checked, onChange, id }) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 0', borderBottom: '1px solid var(--ad-border)' }}>
-        <div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ad-text)' }}>{label}</div>
-          <div style={{ fontSize: 12, color: 'var(--ad-text-2)', marginTop: 2 }}>{desc}</div>
-        </div>
-        <button
-          id={id}
-          onClick={() => { onChange(!checked); showToast('Setting updated ✓') }}
-          style={{
-            width: 44, height: 24, borderRadius: 99, border: 'none', cursor: 'pointer',
-            background: checked ? 'var(--ad-accent)' : 'var(--ad-border)',
-            transition: 'all 0.25s ease', position: 'relative', flexShrink: 0,
-          }}
-        >
-          <span style={{
-            position: 'absolute', top: 2, left: checked ? 22 : 2, width: 20, height: 20,
-            borderRadius: '50%', background: '#fff', transition: 'left 0.25s ease',
-            boxShadow: '0 1px 4px rgba(0,0,0,0.3)',
-          }} />
-        </button>
-      </div>
-    )
-  }
-
+function AdminSettingsSection({ adminEmail, stats, connected }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
       <div className="admin-card">
         <div className="admin-card__header">
-          <div className="admin-card__title">⚙️ Platform Settings</div>
+          <div className="admin-card__title">⚙️ Live Database</div>
         </div>
         <div className="admin-card__body">
-          <Toggle id="admin-toggle-notifs"  label="Email Notifications" desc="Send automated email alerts to users" checked={notifs} onChange={setNotifs} />
-          <Toggle id="admin-toggle-maint"   label="Maintenance Mode"    desc="Temporarily disable user access"       checked={maint}  onChange={setMaint}  />
-          <Toggle id="admin-toggle-debug"   label="Debug Logging"       desc="Enable verbose server-side logging"    checked={debug}  onChange={setDebug}  />
-          <Toggle id="admin-toggle-reg"     label="Open Registration"   desc="Allow new user sign-ups"               checked={reg}    onChange={setReg}    />
+          {[
+            { label: 'Connection', value: connected ? 'Connected' : 'Unavailable', icon: connected ? '🟢' : '🔴' },
+            { label: 'Auto-refresh', value: 'Every 15 seconds', icon: '🔄' },
+            { label: 'Users', value: stats.totalUsers, icon: '👥' },
+            { label: 'Interview sessions', value: stats.totalSessions, icon: '🎯' },
+            { label: 'Questions', value: stats.totalQuestions, icon: '❓' },
+            { label: 'Company records', value: stats.totalCompanies, icon: '🏢' },
+          ].map((item) => (
+            <div key={item.label} className="admin-metric-row">
+              <div className="admin-metric-row__label"><span>{item.icon}</span><span>{item.label}</span></div>
+              <div className="admin-metric-row__val">{item.value}</div>
+            </div>
+          ))}
         </div>
       </div>
       <div className="admin-card">
@@ -632,12 +581,9 @@ function AdminSettingsSection({ showToast }) {
         </div>
         <div className="admin-card__body">
           {[
-            { label: 'Admin Email',   val: 'test@test.com',   icon: '📧' },
-            { label: 'Role',          val: 'Super Admin',      icon: '👑' },
-            { label: 'Last Login',    val: 'Just now',         icon: '🕐' },
-            { label: 'Platform Ver.', val: 'v2.4.1',           icon: '🏷️' },
-            { label: 'Node Env',      val: 'Development',      icon: '💻' },
-            { label: 'DB Status',     val: '🟢 Connected',     icon: '🗄️' },
+            { label: 'Admin Email', val: adminEmail, icon: '📧' },
+            { label: 'Role', val: 'Administrator', icon: '👑' },
+            { label: 'Database', val: 'MySQL via Spring API', icon: '🗄️' },
           ].map((r, i) => (
             <div key={i} className="admin-metric-row">
               <div className="admin-metric-row__label">
@@ -656,10 +602,23 @@ function AdminSettingsSection({ showToast }) {
 // ─── Main AdminPanel Component ────────────────────────────────────────────────
 export default function AdminPanel({ onNavigate }) {
   const [activeNav, setActiveNav] = useState('overview')
-  const [openAddQuestion, setOpenAddQuestion] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [toast, setToast] = useState(null)
   const [time, setTime] = useState(new Date())
+  const [addQuestionRequest, setAddQuestionRequest] = useState(0)
+  const [handledQuestionRequest, setHandledQuestionRequest] = useState(0)
+  const [dashboardData, setDashboardData] = useState({
+    stats: { totalUsers: 0, students: 0, activeUsers: 0, totalSessions: 0, completedSessions: 0, activeSessions: 0, averageScore: 0, totalQuestions: 0, totalCompanies: 0 },
+    users: [],
+    sessions: [],
+    weeklyActivity: [],
+    monthlyRegistrations: [],
+    recentActivity: [],
+  })
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [refreshVersion, setRefreshVersion] = useState(0)
+  const [dataError, setDataError] = useState('')
+  const [hasLoaded, setHasLoaded] = useState(false)
 
   // ── Secondary auth guard ─────────────────────────────────────────────────────
   const isAuthorised = authService.isAdmin()
@@ -679,6 +638,41 @@ export default function AdminPanel({ onNavigate }) {
     setTimeout(() => setToast(null), 3000)
   }, [])
 
+  const refreshDashboard = useCallback(async (silent = false) => {
+    if (!silent) setIsRefreshing(true)
+    try {
+      const data = await authFetch('/api/admin/dashboard')
+      setDashboardData(data)
+      setDataError('')
+      setHasLoaded(true)
+    } catch (error) {
+      setDataError(error.message || 'Unable to load admin data')
+      if (!silent) showToast(error.message || 'Unable to load admin data')
+    } finally {
+      if (!silent) setIsRefreshing(false)
+    }
+  }, [showToast])
+  const requestAddQuestion = useCallback(() => {
+    setActiveNav('allQuestions')
+    setAddQuestionRequest((request) => request + 1)
+  }, [])
+  const refreshAllData = useCallback(() => {
+    setRefreshVersion((version) => version + 1)
+    return refreshDashboard()
+  }, [refreshDashboard])
+  const markQuestionRequestHandled = useCallback((request) => {
+    setHandledQuestionRequest(request)
+  }, [])
+
+  useEffect(() => {
+    const initialLoad = setTimeout(() => refreshDashboard(), 0)
+    const timer = setInterval(() => refreshDashboard(true), 15000)
+    return () => {
+      clearTimeout(initialLoad)
+      clearInterval(timer)
+    }
+  }, [refreshDashboard])
+
   // ── Close sidebar on route change ─────────────────────────────────────────────
   function handleNav(id) {
     setActiveNav(id)
@@ -691,8 +685,8 @@ export default function AdminPanel({ onNavigate }) {
     users:        { title: 'User Management',       subtitle: 'Search, filter and manage all users' },
     interviews:   { title: 'Interview Sessions',    subtitle: 'View all mock interview history' },
     analytics:    { title: 'Analytics',             subtitle: 'Growth trends and platform insights' },
-    reports:      { title: 'Reports',               subtitle: 'Download and generate reports' },
-    settings:     { title: 'Admin Settings',        subtitle: 'Configure platform behaviour' },
+    reports:      { title: 'Reports',               subtitle: 'Export current database records' },
+    settings:     { title: 'Database Status',        subtitle: 'Live database and refresh information' },
     allQuestions: { title: 'Questions Bank',        subtitle: 'Manage, search, and add questions with options, explanations, and company tags' },
     companies:    { title: 'Companies',             subtitle: 'Add and manage company profiles' },
     aptitude:     { title: 'Aptitude Questions',    subtitle: 'Manage quantitative aptitude MCQ topics' },
@@ -700,6 +694,14 @@ export default function AdminPanel({ onNavigate }) {
     generalQs:    { title: 'General Interview Qs',  subtitle: 'HR & behavioral interview questions' },
     javaQs:       { title: 'Java Interview Qs',     subtitle: 'Core Java, OOP, Collections & more' },
     sqlQs:        { title: 'SQL Interview Qs',      subtitle: 'Joins, indexing, window functions & more' },
+  }
+  const { stats, users, sessions, weeklyActivity, monthlyRegistrations, recentActivity } = dashboardData
+  const scopedQuestionSections = {
+    aptitude: { title: 'Aptitude Questions', icon: '📐', allowedCategories: ['Quantitative Aptitude'], defaultCategory: 'Quantitative Aptitude' },
+    reasoning: { title: 'Reasoning Questions', icon: '🧠', allowedCategories: ['Logical Reasoning'], defaultCategory: 'Logical Reasoning' },
+    generalQs: { title: 'General Interview Questions', icon: '💬', allowedCategories: ['HR & Behavioral', 'HR', 'Behavioral', 'General', 'Situational'], defaultCategory: 'HR & Behavioral' },
+    javaQs: { title: 'Java Interview Questions', icon: '☕', allowedCategories: ['Core Java', 'Java'], defaultCategory: 'Core Java' },
+    sqlQs: { title: 'SQL Interview Questions', icon: '🗄️', allowedCategories: ['SQL Database', 'SQL & Databases', 'SQL'], defaultCategory: 'SQL Database' },
   }
 
   // ─── Access Denied ────────────────────────────────────────────────────────────
@@ -763,9 +765,9 @@ export default function AdminPanel({ onNavigate }) {
             >
               <span className="admin-nav-item__icon">{item.icon}</span>
               {item.label}
-              {item.badge && (
+              {(item.id === 'users' || item.id === 'interviews') && (
                 <span className={`admin-nav-item__badge${item.badgeColor ? ' ' + item.badgeColor : ''}`}>
-                  {item.badge}
+                  {item.id === 'users' ? users.length : sessions.length}
                 </span>
               )}
             </button>
@@ -829,8 +831,7 @@ export default function AdminPanel({ onNavigate }) {
               className="admin-topbar__add-btn"
               id="admin-topbar-add-question-btn"
               onClick={() => {
-                setActiveNav('allQuestions')
-                setOpenAddQuestion(true)
+                requestAddQuestion()
               }}
             >
               + Add Question
@@ -843,14 +844,16 @@ export default function AdminPanel({ onNavigate }) {
               🔔
               <span className="admin-topbar__notif-dot" />
             </div>
-            <div
+            <button
+              type="button"
               className="admin-topbar__icon-btn"
               id="admin-refresh-btn"
-              title="Refresh"
-              onClick={() => showToast('Data refreshed ✓')}
+              title="Refresh database data"
+              onClick={refreshAllData}
+              disabled={isRefreshing}
             >
-              🔄
-            </div>
+              {isRefreshing ? '⏳' : '🔄'}
+            </button>
             <div
               className="admin-topbar__avatar"
               id="admin-avatar"
@@ -867,32 +870,36 @@ export default function AdminPanel({ onNavigate }) {
 
         {/* Content */}
         <div className="admin-content" id="admin-content-area">
+          {dataError && (
+            <div className="admin-card" role="alert" style={{ padding: 18, marginBottom: 16 }}>
+              <strong>Database data could not be refreshed.</strong> {hasLoaded ? 'Showing the last successful snapshot.' : dataError}
+              {!hasLoaded && <button className="admin-card__action" style={{ marginLeft: 12 }} onClick={() => refreshDashboard()}>Retry</button>}
+            </div>
+          )}
           {activeNav === 'overview'   && (
             <OverviewSection
-              onAddQuestion={() => {
-                setActiveNav('allQuestions')
-                setOpenAddQuestion(true)
-              }}
+              dashboardStats={stats}
+              weeklyActivity={weeklyActivity}
+              recentActivity={recentActivity}
+              onAddQuestion={requestAddQuestion}
             />
           )}
-          {activeNav === 'users'        && <UsersSection showToast={showToast} />}
-          {activeNav === 'interviews'   && <InterviewsSection />}
-          {activeNav === 'analytics'    && <AnalyticsSection />}
-          {activeNav === 'reports'      && <ReportsSection showToast={showToast} />}
-          {activeNav === 'settings'     && <AdminSettingsSection showToast={showToast} />}
-          {activeNav === 'allQuestions' && (
+          {activeNav === 'users'        && <UsersSection users={users} onRefresh={() => refreshDashboard(true)} adminEmail={adminEmail} showToast={showToast} />}
+          {activeNav === 'interviews'   && <InterviewsSection sessions={sessions} />}
+          {activeNav === 'analytics'    && <AnalyticsSection monthlyRegistrations={monthlyRegistrations} stats={stats} />}
+          {activeNav === 'reports'      && <ReportsSection users={users} sessions={sessions} />}
+          {activeNav === 'settings'     && <AdminSettingsSection adminEmail={adminEmail} stats={stats} connected={hasLoaded && !dataError} />}
+          {(activeNav === 'allQuestions' || scopedQuestionSections[activeNav]) && (
             <QuestionsBankSection
               showToast={showToast}
-              initialOpenAdd={openAddQuestion}
-              onResetInitialOpenAdd={() => setOpenAddQuestion(false)}
+              refreshToken={refreshVersion}
+              addRequest={addQuestionRequest}
+              handledAddRequest={handledQuestionRequest}
+              onAddRequestHandled={markQuestionRequestHandled}
+              {...(scopedQuestionSections[activeNav] || {})}
             />
           )}
-          {activeNav === 'companies'    && <CompaniesSection showToast={showToast} />}
-          {activeNav === 'aptitude'     && <AptitudeSection  showToast={showToast} />}
-          {activeNav === 'reasoning'    && <ReasoningSection showToast={showToast} />}
-          {activeNav === 'generalQs'    && <GeneralQsSection showToast={showToast} />}
-          {activeNav === 'javaQs'       && <JavaQsSection    showToast={showToast} />}
-          {activeNav === 'sqlQs'        && <SqlQsSection     showToast={showToast} />}
+          {activeNav === 'companies'    && <CompaniesSection showToast={showToast} refreshToken={refreshVersion} />}
         </div>
       </div>
 

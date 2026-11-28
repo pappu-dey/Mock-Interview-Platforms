@@ -8,8 +8,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -22,6 +24,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
@@ -49,8 +52,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Public endpoints — no JWT required
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/companies/**").permitAll()
-                        .requestMatchers("/api/questions/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/companies/**", "/api/questions/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/companies/**", "/api/questions/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/companies/**", "/api/questions/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/companies/**", "/api/questions/**").hasRole("ADMIN")
                         .requestMatchers("/api/ai/**").permitAll()
                         // Everything else (including /api/practice/**, /api/dashboard/**, /api/performance/**) requires a valid JWT
                         .anyRequest().authenticated())

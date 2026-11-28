@@ -9,11 +9,13 @@
  *  • JavaQsSection      — add/edit/delete Java interview questions
  *  • SqlQsSection       — add/edit/delete SQL interview questions
  *
- * All use adminStore for localStorage persistence.
+ * The active companies and question-bank sections use authenticated API calls.
+ * Older topic-editor exports remain backed by adminStore for compatibility.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import adminStore from '../../store/adminStore'
+import { authFetch } from '../../api/api'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function uid() {
@@ -173,12 +175,11 @@ function EmptyState({ icon, title, desc, onAdd }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const COMPANY_DEFAULTS = {
-  name: '', fullName: '', industry: '', logo: '', color: '#E4A16A',
+  name: '', logo: '', color: '#E4A16A',
   hq: '', employees: '', website: '', salaryRange: '',
-  difficulty: 'Medium', status: 'saved', readiness: 70,
-  rating: 4, hired: '', openRoles: 0,
+  difficulty: 'Medium', rating: '',
   roles: [], topics: [], tip: '',
-  rounds: [{ id: uid(), name: '', type: 'aptitude', desc: '' }],
+  rounds: [],
 }
 
 function CompanyForm({ form, setForm, errors }) {
@@ -203,17 +204,6 @@ function CompanyForm({ form, setForm, errors }) {
           <label className="cm-label">Company Name <span>*</span></label>
           <input className={`cm-input ${errors.name ? 'error' : ''}`} value={form.name} onChange={e => setField('name', e.target.value)} placeholder="e.g. Google" />
           {errors.name && <span className="cm-field-error">{errors.name}</span>}
-        </div>
-        <div className="cm-field">
-          <label className="cm-label">Full Name</label>
-          <input className="cm-input" value={form.fullName} onChange={e => setField('fullName', e.target.value)} placeholder="e.g. Alphabet Inc." />
-        </div>
-      </div>
-      <div className="cm-field-row">
-        <div className="cm-field">
-          <label className="cm-label">Industry <span>*</span></label>
-          <input className={`cm-input ${errors.industry ? 'error' : ''}`} value={form.industry} onChange={e => setField('industry', e.target.value)} placeholder="e.g. IT Services" />
-          {errors.industry && <span className="cm-field-error">{errors.industry}</span>}
         </div>
         <div className="cm-field">
           <label className="cm-label">Logo Initials</label>
@@ -251,24 +241,8 @@ function CompanyForm({ form, setForm, errors }) {
           </select>
         </div>
         <div className="cm-field">
-          <label className="cm-label">Status</label>
-          <select className="cm-select" value={form.status} onChange={e => setField('status', e.target.value)}>
-            {['saved', 'applied', 'interview', 'offer'].map(s => <option key={s}>{s}</option>)}
-          </select>
-        </div>
-        <div className="cm-field">
-          <label className="cm-label">Open Roles</label>
-          <input className="cm-input" type="number" min="0" value={form.openRoles} onChange={e => setField('openRoles', +e.target.value)} />
-        </div>
-      </div>
-      <div className="cm-field-row">
-        <div className="cm-field">
-          <label className="cm-label">Readiness %</label>
-          <input className="cm-input" type="number" min="0" max="100" value={form.readiness} onChange={e => setField('readiness', +e.target.value)} />
-        </div>
-        <div className="cm-field">
-          <label className="cm-label">Campus Hired/yr</label>
-          <input className="cm-input" value={form.hired} onChange={e => setField('hired', e.target.value)} placeholder="e.g. 5,000+ campus hires/yr" />
+          <label className="cm-label">Rating</label>
+          <input className="cm-input" type="number" min="0" max="5" step="0.1" value={form.rating} onChange={e => setField('rating', e.target.value)} />
         </div>
       </div>
 
@@ -329,8 +303,8 @@ function CompanyForm({ form, setForm, errors }) {
   )
 }
 
-export function CompaniesSection({ showToast }) {
-  const [items, setItems] = useState(() => adminStore.get('companies'))
+export function CompaniesSection({ showToast, refreshToken }) {
+  const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
   const [drawer, setDrawer] = useState(null)   // null | 'add' | 'edit'
   const [form, setForm] = useState(COMPANY_DEFAULTS)
@@ -338,59 +312,52 @@ export function CompaniesSection({ showToast }) {
   const [errors, setErrors] = useState({})
   const [delItem, setDelItem] = useState(null)
 
-  const fetchCompanies = async () => {
-    try {
-      const res = await fetch('https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/companies')
-      if (res.ok) {
-        const data = await res.json()
-        if (Array.isArray(data)) {
-          const mapped = data.map(c => ({
+  const fetchCompanies = useCallback(async () => {
+    const data = await authFetch('/api/companies')
+    if (!Array.isArray(data)) throw new Error('Invalid companies response')
+    const mapped = data.map(c => ({
             id: c.companyId,
             companyId: c.companyId,
             name: c.companyName,
-            fullName: c.companyName,
-            industry: 'IT & Software',
             logo: c.companyLogo || c.companyName?.slice(0, 2).toUpperCase() || 'CO',
             color: '#E4A16A',
             hq: c.headquarters || '',
             employees: c.employees || '',
             website: c.companyWebsite || '',
-            salaryRange: (c.jobRoles && c.jobRoles[0]?.salary) || '₹5.0L – ₹12.0L',
+            salaryRange: c.jobRoles?.[0]?.salary || '',
             difficulty: c.difficulty || 'Medium',
-            status: 'saved',
-            readiness: 70,
-            rating: c.rating || 4,
-            hired: 'Direct Hires',
-            openRoles: c.jobRoles ? c.jobRoles.filter(r => r.isOpen !== false).length : 0,
+            rating: c.rating ?? '',
             roles: c.jobRoles ? c.jobRoles.map(r => r.roleName) : [],
             topics: c.jobRoles && c.jobRoles[0]?.technicalTopics ? c.jobRoles[0].technicalTopics.split(',').map(t => t.trim()) : [],
             tip: c.insiderTips || '',
             rounds: c.jobRoles && c.jobRoles[0]?.hiringProcesses
               ? c.jobRoles[0].hiringProcesses.map((hp) => ({ id: uid(), name: hp.roundName, type: 'technical', desc: hp.description }))
-              : [{ id: uid(), name: 'Technical Assessment', type: 'technical', desc: 'Coding and fundamentals' }],
+              : [],
             jobRoles: c.jobRoles || []
-          }))
-          setItems(mapped)
-          adminStore.set('companies', mapped)
-        }
-      }
-    } catch (err) {
-      console.log('Backend not connected, using adminStore:', err)
-    }
-  }
+    }))
+    setItems(mapped)
+  }, [])
 
   useEffect(() => {
-    fetchCompanies()
-    return adminStore.subscribe('companies', () => setItems(adminStore.get('companies')))
-  }, [])
+    let active = true
+    const load = (notify = true) => fetchCompanies().catch(error => {
+      if (active && notify) showToast(error.message || 'Unable to load companies')
+    })
+    load()
+    const timer = setInterval(() => load(false), 15000)
+    return () => {
+      active = false
+      clearInterval(timer)
+    }
+  }, [fetchCompanies, showToast, refreshToken])
 
   const filtered = items.filter(c =>
     c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.industry?.toLowerCase().includes(search.toLowerCase())
+    c.website?.toLowerCase().includes(search.toLowerCase())
   )
 
   function openAdd() {
-    setForm({ ...COMPANY_DEFAULTS, rounds: [{ id: uid(), name: '', type: 'aptitude', desc: '' }] })
+    setForm({ ...COMPANY_DEFAULTS, rounds: [] })
     setEditId(null)
     setErrors({})
     setDrawer('add')
@@ -400,13 +367,11 @@ export function CompaniesSection({ showToast }) {
       ...COMPANY_DEFAULTS,
       ...item,
       name: item.name || item.companyName || '',
-      fullName: item.fullName || item.companyName || '',
       hq: item.hq || item.headquarters || '',
       website: item.website || item.companyWebsite || '',
       logo: item.logo || item.companyLogo || '',
       tip: item.tip || item.insiderTips || '',
-      industry: item.industry || 'IT Services',
-      rounds: item.rounds?.length ? item.rounds.map(r => ({ ...r, id: r.id || uid() })) : [{ id: uid(), name: '', type: 'aptitude', desc: '' }]
+      rounds: item.rounds?.length ? item.rounds.map(r => ({ ...r, id: r.id || uid() })) : []
     })
     setEditId(item.companyId || item.id)
     setErrors({})
@@ -430,65 +395,44 @@ export function CompaniesSection({ showToast }) {
       companyLogo: form.logo || form.name.slice(0, 2).toUpperCase(),
       headquarters: form.hq,
       employees: form.employees,
-      rating: Number(form.rating) || 4.0,
+      rating: form.rating === '' ? null : Number(form.rating),
       difficulty: form.difficulty,
       insiderTips: form.tip,
-      jobRoles: (form.roles && form.roles.length > 0 ? form.roles : ['Software Engineer']).map((rName, rIdx) => ({
-        roleName: typeof rName === 'string' ? rName : (rName.roleName || 'Software Engineer'),
-        location: form.hq || 'Pan India',
-        salary: form.salaryRange || '₹5L - ₹10L',
-        experience: '0-2 Years',
-        eligibility: 'B.Tech/BE/BCA/MCA (Min 60%)',
-        technicalTopics: Array.isArray(form.topics) ? form.topics.join(', ') : (form.topics || 'DSA, SQL'),
-        description: form.tip || 'Role description',
-        isOpen: true,
+      jobRoles: form.roles.map((rName) => {
+        const roleName = typeof rName === 'string' ? rName : (rName.roleName || 'Software Engineer')
+        const existingRole = form.jobRoles?.find(role => role.roleName === roleName)
+        return {
+        ...existingRole,
+        roleName,
+        location: existingRole?.location || form.hq,
+        salary: form.salaryRange || existingRole?.salary || '',
+        experience: existingRole?.experience || '',
+        eligibility: existingRole?.eligibility || '',
+        technicalTopics: Array.isArray(form.topics) && form.topics.length
+          ? form.topics.join(', ')
+          : existingRole?.technicalTopics || '',
+        description: form.tip || existingRole?.description || '',
+        isOpen: existingRole?.isOpen ?? true,
         hiringProcesses: (form.rounds || []).map((rnd, idx) => ({
           roundNumber: idx + 1,
           roundName: rnd.name || `Round ${idx + 1}`,
           description: rnd.desc || ''
         }))
-      }))
+      }})
     }
 
     try {
-      const url = drawer === 'add'
-        ? 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/companies'
-        : `https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/companies/${editId}`
-
       const method = drawer === 'add' ? 'POST' : 'PUT'
-
-      const res = await fetch(url, {
+      await authFetch(drawer === 'add' ? '/api/companies' : `/api/companies/${editId}`, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-
-      if (res.ok) {
-        showToast(drawer === 'add' ? 'Company saved to database ✓' : 'Company updated in database ✓')
-        fetchCompanies()
-      } else {
-        const localPayload = { ...form, logo: form.logo || form.name.slice(0, 2).toUpperCase() }
-        if (drawer === 'add') {
-          adminStore.add('companies', { ...localPayload, id: form.name.toLowerCase().replace(/\s+/g, '-') + '-' + uid() })
-          showToast('Company added locally ✓')
-        } else {
-          adminStore.update('companies', editId, localPayload)
-          showToast('Company updated locally ✓')
-        }
-      }
+      showToast(drawer === 'add' ? 'Company saved to database ✓' : 'Company updated in database ✓')
+      await fetchCompanies()
+      setDrawer(null)
     } catch (e) {
-      console.error('Error saving company:', e)
-      const localPayload = { ...form, logo: form.logo || form.name.slice(0, 2).toUpperCase() }
-      if (drawer === 'add') {
-        adminStore.add('companies', { ...localPayload, id: form.name.toLowerCase().replace(/\s+/g, '-') + '-' + uid() })
-        showToast('Company added locally ✓')
-      } else {
-        adminStore.update('companies', editId, localPayload)
-        showToast('Company updated locally ✓')
-      }
+      showToast(e.message || 'Unable to save company')
     }
-
-    setDrawer(null)
   }
 
   function handleDelete(item) {
@@ -499,12 +443,11 @@ export function CompaniesSection({ showToast }) {
     if (delItem) {
       const targetId = delItem.companyId || delItem.id
       try {
-        await fetch(`https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/companies/${targetId}`, { method: 'DELETE' })
+        await authFetch(`/api/companies/${targetId}`, { method: 'DELETE' })
         showToast('Company deleted from database')
-        fetchCompanies()
-      } catch (err) {
-        adminStore.remove('companies', delItem.id)
-        showToast('Company deleted')
+        await fetchCompanies()
+      } catch (error) {
+        showToast(error.message || 'Unable to delete company')
       }
     }
     setDelItem(null)
@@ -522,12 +465,12 @@ export function CompaniesSection({ showToast }) {
             <thead>
               <tr>
                 <th>Company</th>
-                <th>Industry</th>
+                <th>Website</th>
                 <th>HQ</th>
                 <th>Difficulty</th>
                 <th>Salary</th>
                 <th>Rounds</th>
-                <th>Status</th>
+                <th>Open Roles</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -541,16 +484,16 @@ export function CompaniesSection({ showToast }) {
                       </div>
                       <div>
                         <strong>{c.name}</strong>
-                        <span className="cm-cell-sub">{c.fullName}</span>
+                        <span className="cm-cell-sub">{c.employees || 'Employees not listed'}</span>
                       </div>
                     </div>
                   </td>
-                  <td className="cm-cell-muted">{c.industry}</td>
+                  <td className="cm-cell-muted">{c.website || '—'}</td>
                   <td className="cm-cell-muted">{c.hq}</td>
                   <td><span className={`cm-badge ${badgeClass(c.difficulty)}`}>{c.difficulty}</span></td>
                   <td className="cm-cell-muted">{c.salaryRange}</td>
                   <td><span className="cm-count-chip">🎯 {c.rounds?.length || 0}</span></td>
-                  <td><span className={`cm-badge ${badgeClass(c.status)}`}>{c.status}</span></td>
+                  <td><span className="cm-count-chip">{c.openRoles}</span></td>
                   <td>
                     <div className="cm-row-actions">
                       <button className="cm-action-btn edit" title="Edit" onClick={() => openEdit(c)}>✏️</button>
@@ -1086,7 +1029,7 @@ const TYPE_OPTIONS = [
   'Subjective',
 ]
 
-function QuestionForm({ form, setForm, errors }) {
+function QuestionForm({ form, setForm, errors, categories }) {
   function setField(key, val) { setForm(f => ({ ...f, [key]: val })) }
 
   function pickOptionAsAnswer(letter, optValue) {
@@ -1118,7 +1061,7 @@ function QuestionForm({ form, setForm, errors }) {
         <div className="cm-field">
           <label className="cm-label">Category <span>*</span></label>
           <select className="cm-select" value={form.category} onChange={e => setField('category', e.target.value)}>
-            {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
         <div className="cm-field">
@@ -1344,39 +1287,48 @@ function QuestionDetailModal({ item, onClose, onEdit }) {
   )
 }
 
-export function QuestionsBankSection({ showToast, initialOpenAdd = false, onResetInitialOpenAdd }) {
-  const [items, setItems] = useState(() => adminStore.get('allQuestions'))
+export function QuestionsBankSection({
+  showToast,
+  refreshToken,
+  addRequest = 0,
+  handledAddRequest = 0,
+  onAddRequestHandled,
+  title = 'Questions Bank',
+  icon = '❓',
+  allowedCategories,
+  defaultCategory = QUESTION_DEFAULTS.category,
+}) {
+  const [items, setItems] = useState([])
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('All')
   const [filterDiff, setFilterDiff] = useState('All')
   const [filterType, setFilterType] = useState('All')
-  const [drawer, setDrawer] = useState(initialOpenAdd ? 'add' : null)
-  const [form, setForm] = useState(QUESTION_DEFAULTS)
+  const [drawer, setDrawer] = useState(null)
+  const [form, setForm] = useState({ ...QUESTION_DEFAULTS, category: defaultCategory })
   const [editId, setEditId] = useState(null)
   const [errors, setErrors] = useState({})
   const [delItem, setDelItem] = useState(null)
   const [detailItem, setDetailItem] = useState(null)
   const [isSyncing, setIsSyncing] = useState(false)
 
-  // Sync if opened via topbar "+ Add Question"
   useEffect(() => {
-    if (initialOpenAdd) {
-      setForm(QUESTION_DEFAULTS)
+    if (addRequest <= handledAddRequest) return
+    const timer = setTimeout(() => {
+      setForm({ ...QUESTION_DEFAULTS, category: defaultCategory })
       setEditId(null)
       setErrors({})
       setDrawer('add')
-      if (onResetInitialOpenAdd) onResetInitialOpenAdd()
-    }
-  }, [initialOpenAdd, onResetInitialOpenAdd])
+      onAddRequestHandled(addRequest)
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [addRequest, handledAddRequest, defaultCategory, onAddRequestHandled])
 
-  const fetchQuestions = useCallback(async () => {
+  const fetchQuestions = useCallback(async (silent = false) => {
     setIsSyncing(true)
     try {
-      const res = await fetch('https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions')
-      if (res.ok) {
-        const data = await res.json()
-        if (Array.isArray(data)) {
-          const mapped = data.map(q => ({
+      const data = await authFetch('/api/questions')
+      if (!Array.isArray(data)) throw new Error('Invalid questions response')
+      const mapped = data.map(q => ({
             id: q.id,
             question: q.question,
             option_a: q.option_a || q.optionA || '',
@@ -1392,38 +1344,43 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
             company_tag: q.company_tag || q.companyTag || '',
             created_at: q.created_at || q.createdAt,
             updated_at: q.updated_at || q.updatedAt,
-          }))
-          setItems(mapped)
-          adminStore.setAll('allQuestions', mapped)
-        }
-      }
-    } catch (err) {
-      console.log('Backend not connected or error, using adminStore:', err)
+      }))
+      setItems(mapped)
+    } catch (error) {
+      if (!silent) showToast(error.message || 'Unable to load questions')
     } finally {
       setIsSyncing(false)
     }
-  }, [])
+  }, [showToast])
 
   useEffect(() => {
-    fetchQuestions()
-    return adminStore.subscribe('allQuestions', () => setItems(adminStore.get('allQuestions')))
-  }, [fetchQuestions])
+    const initialLoad = setTimeout(fetchQuestions, 0)
+    const timer = setInterval(() => fetchQuestions(true), 15000)
+    return () => {
+      clearTimeout(initialLoad)
+      clearInterval(timer)
+    }
+  }, [fetchQuestions, refreshToken])
 
-  const filtered = items.filter(q => {
+  const categories = allowedCategories || CATEGORY_OPTIONS
+  const scopedItems = allowedCategories
+    ? items.filter(question => allowedCategories.includes(question.category) || allowedCategories.includes(question.sub_category))
+    : items
+  const filtered = scopedItems.filter(q => {
     const s = search.toLowerCase()
     const matchSearch = (q.question || '').toLowerCase().includes(s) ||
       (q.explanation || '').toLowerCase().includes(s) ||
       (q.company_tag || '').toLowerCase().includes(s) ||
       (q.sub_category || '').toLowerCase().includes(s) ||
       (q.answer || '').toLowerCase().includes(s)
-    const matchCat = filterCat === 'All' || q.category === filterCat
+    const matchCat = filterCat === 'All' || q.category === filterCat || q.sub_category === filterCat
     const matchDiff = filterDiff === 'All' || (q.difficulty || '').toLowerCase() === filterDiff.toLowerCase()
     const matchType = filterType === 'All' || (q.question_type || '').toLowerCase() === filterType.toLowerCase()
     return matchSearch && matchCat && matchDiff && matchType
   })
 
   function openAdd() {
-    setForm(QUESTION_DEFAULTS)
+    setForm({ ...QUESTION_DEFAULTS, category: defaultCategory })
     setEditId(null)
     setErrors({})
     setDrawer('add')
@@ -1477,55 +1434,28 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
     }
 
     try {
-      const url = drawer === 'add'
-        ? 'https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions'
-        : `https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions/${editId}`
-
       const method = drawer === 'add' ? 'POST' : 'PUT'
-
-      const res = await fetch(url, {
+      await authFetch(drawer === 'add' ? '/api/questions' : `/api/questions/${editId}`, {
         method,
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       })
-
-      if (res.ok) {
-        showToast(drawer === 'add' ? 'Question saved to database ✓' : 'Question updated in database ✓')
-        fetchQuestions()
-      } else {
-        // Fallback to local store
-        if (drawer === 'add') {
-          adminStore.add('allQuestions', { ...payload, id: Date.now(), created_at: new Date().toISOString() })
-          showToast('Question added locally ✓')
-        } else {
-          adminStore.update('allQuestions', editId, payload)
-          showToast('Question updated locally ✓')
-        }
-      }
-    } catch (e) {
-      console.warn('Backend unavailable, saving question to local store:', e)
-      if (drawer === 'add') {
-        adminStore.add('allQuestions', { ...payload, id: Date.now(), created_at: new Date().toISOString() })
-        showToast('Question added locally ✓')
-      } else {
-        adminStore.update('allQuestions', editId, payload)
-        showToast('Question updated locally ✓')
-      }
+      showToast(drawer === 'add' ? 'Question saved to database ✓' : 'Question updated in database ✓')
+      await fetchQuestions()
+      setDrawer(null)
+    } catch (error) {
+      showToast(error.message || 'Unable to save question')
     }
-
-    setDrawer(null)
   }
 
   async function confirmDelete() {
     if (delItem) {
       const targetId = delItem.id
       try {
-        await fetch(`https://main-mock-interview-platforms-pappus-workspace.light-cloud.io/api/questions/${targetId}`, { method: 'DELETE' })
+        await authFetch(`/api/questions/${targetId}`, { method: 'DELETE' })
         showToast('Question deleted from database')
-        fetchQuestions()
-      } catch (err) {
-        adminStore.remove('allQuestions', targetId)
-        showToast('Question deleted locally')
+        await fetchQuestions()
+      } catch (error) {
+        showToast(error.message || 'Unable to delete question')
       }
     }
     setDelItem(null)
@@ -1534,10 +1464,10 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
   return (
     <>
       <SectionToolbar
-        icon="❓"
-        title="Questions Bank"
-        subtitle="Manage and add examination & interview questions with full option sets"
-        count={items.length}
+        icon={icon}
+        title={title}
+        subtitle="Manage questions, options, answers, and company tags stored in the database"
+        count={scopedItems.length}
         searchVal={search}
         onSearch={setSearch}
         onAdd={openAdd}
@@ -1555,7 +1485,7 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
             onChange={e => setFilterCat(e.target.value)}
           >
             <option value="All">All Categories</option>
-            {CATEGORY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+            {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         </div>
 
@@ -1594,7 +1524,7 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
 
       {filtered.length === 0 ? (
         <EmptyState
-          icon="❓"
+          icon={icon}
           title="No questions found"
           desc="Click the '+ Add Question' button to create your first question with options, correct answer, and explanation."
           onAdd={openAdd}
@@ -1717,14 +1647,14 @@ export function QuestionsBankSection({ showToast, initialOpenAdd = false, onRese
       {/* Add / Edit Drawer */}
       {drawer && (
         <Drawer
-          icon="❓"
-          title={drawer === 'add' ? 'Add New Question' : 'Edit Question'}
+          icon={icon}
+          title={drawer === 'add' ? `Add ${title.replace(/s$/, '')}` : 'Edit Question'}
           subtitle={drawer === 'add' ? 'Configure question statement, options A-D, answer, and taxonomy' : `Editing Question #${editId}`}
           onClose={() => setDrawer(null)}
           onSave={handleSave}
           saveLabel={drawer === 'add' ? 'Save Question to Database' : 'Update Question'}
         >
-          <QuestionForm form={form} setForm={setForm} errors={errors} />
+          <QuestionForm form={form} setForm={setForm} errors={errors} categories={categories} />
         </Drawer>
       )}
 

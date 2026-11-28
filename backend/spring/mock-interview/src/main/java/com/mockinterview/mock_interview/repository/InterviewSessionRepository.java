@@ -9,6 +9,8 @@ public interface InterviewSessionRepository extends JpaRepository<InterviewSessi
 
     List<InterviewSession> findByUser_UserIdOrderByStartTimeDesc(Integer userId);
 
+    List<InterviewSession> findAllByOrderByStartTimeDesc();
+
     List<InterviewSession> findByUser_UserIdAndEndTimeIsNullOrderByStartTimeDesc(Integer userId);
 
     long countByUser_UserId(Integer userId);
